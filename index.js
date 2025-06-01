@@ -1,19 +1,24 @@
 require("dotenv").config();
+const cookieParser = require('cookie-parser');
 
 const express = require('express');
 const app = express();
-const {sql} = require('./config/connectDB');
+require('./config/supabaseClient');
 
 const PORT = 3800;
 
-app.get('/', async (req, res) => {
-    const result = await sql`SELECT version()`;
-    const { version } = result[0];
-    res.send({
-        message: "Hello world",
-        dbVersion: version
-    });
+app.use(cookieParser());
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }))
+
+app.get('/', (req, res) => {
+    res.send("Hello World!");
 })
+
+// app.get('/users/:username', require('./controllers/userController').getUser);
+
+app.use('/register', require('./routers/register'));
+app.use('/login', require('./routers/login'));
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}...`);
