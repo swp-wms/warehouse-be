@@ -1,5 +1,6 @@
 require("dotenv").config();
 const cookieParser = require('cookie-parser');
+const verifyJwt = require('./middlewares/authMiddleware');
 
 const express = require('express');
 const app = express();
@@ -15,10 +16,12 @@ app.get('/', (req, res) => {
     res.send("Hello World!");
 })
 
-// app.get('/users/:username', require('./controllers/userController').getUser);
-
-app.use('/register', require('./routers/register'));
+//no verify jwt
 app.use('/login', require('./routers/login'));
+
+// verify jwt
+app.use(verifyJwt);
+app.use('/register', require('./routers/register'));
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}...`);

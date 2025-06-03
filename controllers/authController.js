@@ -31,11 +31,11 @@ const login = async (req, res) => {
                 message: 'Password is incorrect!'
             });
         }
-
+        
         const refreshToken = jwt.sign(
             {
                 username: match.username,
-                role: match.role
+                roleid: match.roleid
             },
             process.env.REFRESH_TOKEN_SECRET,
             {
@@ -46,7 +46,7 @@ const login = async (req, res) => {
         const accessToken = jwt.sign(
             {
                 username: match.username,
-                role: match.role
+                roleid: match.roleid
             },
             process.env.ACCESS_TOKEN_SECRET,
             {
@@ -59,7 +59,7 @@ const login = async (req, res) => {
         res.status(200).json({
             message: 'Login successful!',
             accessToken,
-            role: match.role
+            roleid: match.roleid
         });
     } catch (error) {
         console.log(error);
