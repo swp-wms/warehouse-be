@@ -23,6 +23,7 @@ app.get('/', (req, res) => {
 
 //no verify jwt
 app.use('/login', require('./routers/login'));
+app.use('/reset-password', require('./routers/resetPassword'));
 
 // verify jwt
 app.use(verifyJwt);
