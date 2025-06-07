@@ -3,7 +3,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const verifyJwt = require('./middlewares/authMiddleware');
 const credentials = require('./middlewares/credentials');
-const corsOptions = require('./config/allowedOrigins');
+const corOptions = require('./config/allowedOrigins');
 
 const express = require('express');
 const app = express();
@@ -12,7 +12,7 @@ require('./config/supabaseClient');
 const PORT = 3800;
 
 app.use(credentials);
-app.use(cors(corsOptions));
+app.use(cors(corOptions));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }))
