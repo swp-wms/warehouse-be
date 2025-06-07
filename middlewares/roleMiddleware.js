@@ -1,9 +1,9 @@
-const role = require('../data/role');
-
 const verifyRoles = (...allowedRoles) => {
     return (req, res, next) => {
         const roleid = req.roleid;
         if (!roleid) {            
+            console.log("huhu");
+            
             return res.sendStatus(401);
         }
         const rolesArray = [...allowedRoles];

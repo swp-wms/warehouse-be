@@ -27,7 +27,9 @@ app.use('/reset-password', require('./routers/resetPassword'));
 
 // verify jwt
 app.use(verifyJwt);
-app.use('/register', require('./routers/register'));
+app.use('/admin', require('./routers/api/admin'));
+app.use('/change-password', require('./routers/api/changePassword'));
+app.use('/delivery', require('./routers/api/delivery'));
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}...`);
