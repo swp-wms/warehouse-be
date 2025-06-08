@@ -4,7 +4,7 @@ const supabase = require('../config/supabaseClient');
 const getAllImportOrders = async(req, res) => {
   const { data, error } = await supabase
   .from('order')
-  .select(`*,partner(*)`)
+  .select(`* `)
   .eq('type', 'I'); // Assuming 'I' is for import orders
   if (error) {
     return res.status(500).json({ error: error.message });
@@ -26,42 +26,101 @@ const getAllExportOrders = async(req, res) => {
   res.json(data);
 }
 
-const createNewOrder = async(req,res) => {
-  const newOrder = {
+// Helper to validate required fields
+const validateOrderFields = (order) => {
+  return (
+    order.type &&
+    order.partnerid &&
+    order.salesman &&
+    order.totalbars !== undefined && order.totalbars !== null &&
+    order.totalweight !== undefined && order.totalweight !== null
+  );
+};
+
+const validateOrderDetail = (orderdetail) => {
+
+
+
+  return (
+    orderdetail.productid &&
+    orderdetail.quantity !== undefined && orderdetail.quantity !== null &&
+    orderdetail.price !== undefined && orderdetail.price !== null
+  );
+};
+
+// Helper to build new order object
+const buildNewOrder = (req) => {
+  return {
     type: req.body.type,
-    partnerid : req.body.partnerid,
-    salesman : req.body.salesman,
+    partnerid: req.body.partnerid,
+    salesman: req.body.salesman,
     totalbars: req.body.totalbars,
     totalweight: req.body.totalweight,
     address: req.body.address || '',
     status: "0%",
     createdate: new Date().toISOString().split('T')[0],
     note: req.body.note || '',
+  };
+}
+
+// Helper to build order detail array
+const buildOrderDetailArray = (orderdetail, orderId) => {
+  return orderdetail.map(item => ({
+    ...item,
+    orderid: orderId
+  }));
+}
+
+const createNewOrder = async (req, res) => {
+  const newOrder = buildNewOrder(req);
+  const { orderdetail } = req.body;
+
+  if (!orderdetail || !Array.isArray(orderdetail) || orderdetail.length === 0) {
+    return res.status(400).json({ error: 'orderdetail must be a non-empty array' });
   }
 
-  console.log(`Creating new order: ${JSON.stringify(newOrder)}`);
-  res.json(newOrder);
-
-  if(
-    !newOrder.type ||
-    !newOrder.partnerid ||
-    !newOrder.salesman ||
-    newOrder.totalbars === undefined || newOrder.totalbars === null ||
-    newOrder.totalweight === undefined || newOrder.totalweight === null
-  ) {
+  if (!validateOrderFields(newOrder)) {
     return res.status(400).json({ error: 'Missing either of these required fields (type, partnerid, salesman, totalbars, totalweight) please try again!' });
   }
 
-  const { data, error } = await supabase
-    .from('order')
-    .insert(newOrder);
-
-  if (error) {
-    return res.status(500).json({ error: error.message });
+  
+  for(let i = 0; i < orderdetail.length; i++){
+    if(!validateOrderDetail(orderdetail[i])){
+      return res.json({ error: 'Missing either productid, quantity or price in orderdetail' });
+    }
   }
 
-  res.status(201).json(data);
-}
+  // Insert order and get the generated id
+  const { data: orderData, error: orderError } = await supabase
+    .from('order')
+    .insert(newOrder)
+    .select('id')
+    .single();
+
+  if (orderError) {
+    return res.status(500).json({ error: orderError.message });
+  }
+
+  const orderId = orderData.id;
+  const orderDetailArray = buildOrderDetailArray(orderdetail, orderId);
+  
+  
+  const { data: orderDetailData, error: orderDetailError } = await supabase
+    .from('orderdetail')
+    .insert(orderDetailArray);
+
+  if (orderDetailError) {
+    return res.status(500).json({ error: orderDetailError.message });
+  }
+
+  const orderInfo = {
+    id: orderId,
+    ...newOrder,
+    orderdetail: orderDetailData
+  };
+
+  res.status(201).json({ order: orderInfo });
+};
 
 const searchOrder = async (req,res) => {
   const id = req.params.id; 
@@ -89,6 +148,13 @@ const searchOrder = async (req,res) => {
 
 
 const updateOrder = async(req,res) =>{
+  const {orderdetail}  = req.body;
+  
+  
+  for(let i = 0; i < orderdetail.length; i++){
+
+  }
+  
   const {data, error} = await supabase
   .from('order')
   .update({
@@ -119,6 +185,27 @@ const updateOrder = async(req,res) =>{
   );
 }
 
+const getOrderDetail = async (req,res) => {
+  const id = req.params.orderId;
+  if(!id){
+    return res.status(400).json({ error: 'Order ID is required' });
+  }
+
+  const {data, error} = await supabase
+  .from('order')
+  .select(`*, partner:partnerid(*), orderdetail:orderdetail(*)`)
+  .eq('id',id)
+
+  if( error ){
+    res.json({error: error.message});
+  }
+
+  if(!data || data.length === 0){
+    return res.status(404).json({error: 'No details found'})
+  }
+
+  res.status(200).json(data);
+}
 
 
 module.exports ={
@@ -126,5 +213,6 @@ module.exports ={
     getAllExportOrders,
     createNewOrder,
     searchOrder,
-    updateOrder
+    updateOrder,
+    getOrderDetail
 }
