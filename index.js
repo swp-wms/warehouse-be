@@ -21,6 +21,8 @@ app.get('/', (req, res) => {
     res.send("Hello World!");
 })
 
+app.use('/detail',require('./routers/orderDetail'));
+
 //no verify jwt
 app.use('/login', require('./routers/login'));
 
