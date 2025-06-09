@@ -15,7 +15,7 @@ const getUser = async (req, res) => {
     const username = req.username;
 
     try {
-        const user = (await supabase.from('user').select().eq('username', username)).data[0];
+        const user = (await supabase.from('user').select('*, role(rolename)').eq('username', username)).data[0];
         if (!user) {
             return res.status(404).json({ message: 'Người dùng không tồn tại.' });
         }

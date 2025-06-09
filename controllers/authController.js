@@ -211,4 +211,10 @@ const changePassword = async (req, res) => {
     }
 }
 
-module.exports = { login, resetPassword, resetPasswordByAdmin, changePassword };
+const logout = async (req, res) => {
+    res.clearCookie('jwt', { httpOnly: true, sameSite: 'None' });
+    res.sendStatus(204);
+
+}
+
+module.exports = { login, logout, resetPassword, resetPasswordByAdmin, changePassword };
