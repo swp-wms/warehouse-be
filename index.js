@@ -30,6 +30,7 @@ app.use(verifyJwt);
 app.use('/admin', require('./routers/api/admin'));
 app.use('/change-password', require('./routers/api/changePassword'));
 app.use('/delivery', require('./routers/api/delivery'));
+app.use('/users', require('./routers/api/user'));
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}...`);
