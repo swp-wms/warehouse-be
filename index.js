@@ -25,11 +25,19 @@ app.use('/detail',require('./routers/orderDetail'));
 
 //no verify jwt
 app.use('/login', require('./routers/login'));
+app.use('/logout', require('./routers/logout'));
+app.use('/reset-password', require('./routers/resetPassword'));
 
 // verify jwt
 app.use(verifyJwt);
+
 app.use('/orders', require('./routers/order'));
 app.use('/register', require('./routers/register'));
+app.use('/admin', require('./routers/api/admin'));
+app.use('/change-password', require('./routers/api/changePassword'));
+app.use('/delivery', require('./routers/api/delivery'));
+app.use('/users', require('./routers/api/user'));
+
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}...`);

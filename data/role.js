@@ -3,7 +3,7 @@ const role = {
     CEO: 2,
     SALESMAN: 3,
     WAREHOUSE_KEEPER: 4,
-    DELIVERY_MANAGER: 5
+    DELIVERY_STAFF: 5
 }
 
 module.exports = role;
