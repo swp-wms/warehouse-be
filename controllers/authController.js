@@ -84,7 +84,7 @@ const resetPassword = async (req, res) => {
     }
 
     try {
-        const result = await supabase.from('user').select().filter('email', 'eq', email);
+        const result = await supabase.from('user').select().filter('username', 'eq', email);
         if (result.error) {
             console.log(result.error);
             throw new Error(result.error);
@@ -98,6 +98,8 @@ const resetPassword = async (req, res) => {
         }
 
         const otp = (await supabase.from('otp').select().filter('email', 'eq', email).single()).data;
+        console.log(otp);
+        
         if (!otp || !otp.verified || new Date() > otp.expire) {
             return res.status(401).json({
                 message: "Bạn chưa xác nhận OTP hoặc OTP đã hết hạn! Vui lòng thử lại!"
@@ -105,7 +107,7 @@ const resetPassword = async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const resultUpdate = await supabase.from('user').update({ password: hashedPassword }).eq('email', email);
+        const resultUpdate = await supabase.from('user').update({ password: hashedPassword }).eq('username', email);
         if (resultUpdate.error) {
             console.log(resultUpdate.error);
             throw new Error(resultUpdate.error);
@@ -150,7 +152,7 @@ const resetPasswordByAdmin = async (req, res) => {
             throw new Error(resultUpdate.error);
         }
 
-        res.status(200).json({ message: `${username} hange password successfully!` });
+        res.status(200).json({ message: `${username} đổi mật khẩu thành công!` });
     } catch (error) {
         console.log(error);
         res.sendStatus(500);
