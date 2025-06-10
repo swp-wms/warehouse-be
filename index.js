@@ -1,4 +1,4 @@
-require("dotenv").config();
+
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const verifyJwt = require('./middlewares/authMiddleware');
@@ -7,6 +7,7 @@ const corOptions = require('./config/allowedOrigins');
 
 const express = require('express');
 const app = express();
+require("dotenv").config();
 require('./config/supabaseClient');
 
 const PORT = 3800;
@@ -21,7 +22,7 @@ app.get('/', (req, res) => {
     res.send("Hello World!");
 })
 
-app.use('/detail',require('./routers/orderDetail'));
+app.use('/detail',require('./routers/api/orderDetail'));
 
 //no verify jwt
 app.use('/login', require('./routers/login'));
@@ -31,8 +32,8 @@ app.use('/reset-password', require('./routers/resetPassword'));
 // verify jwt
 app.use(verifyJwt);
 
-app.use('/orders', require('./routers/order'));
-app.use('/register', require('./routers/register'));
+app.use('/orders', require('./routers/api/order'));
+// app.use('/register', require('./routers/register'));
 app.use('/admin', require('./routers/api/admin'));
 app.use('/change-password', require('./routers/api/changePassword'));
 app.use('/delivery', require('./routers/api/delivery'));
