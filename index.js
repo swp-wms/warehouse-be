@@ -35,6 +35,9 @@ app.use('/role', require('./routers/api/roles'));
 //get catalog
 app.use('/catalog', require('./routers/api/catalog'));
 
+//get supplements
+app.use('/supplement', require('./routers/api/supplement'));
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}...`);
 });
