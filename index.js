@@ -23,11 +23,15 @@ app.get('/', (req, res) => {
 
 //no verify jwt
 app.use('/login', require('./routers/login'));
+app.use('/logout', require('./routers/logout'));
 app.use('/reset-password', require('./routers/resetPassword'));
 
 // verify jwt
 app.use(verifyJwt);
-app.use('/register', require('./routers/register'));
+app.use('/admin', require('./routers/api/admin'));
+app.use('/change-password', require('./routers/api/changePassword'));
+app.use('/delivery', require('./routers/api/delivery'));
+app.use('/users', require('./routers/api/user'));
 
 //get roles
 app.use('/role', require('./routers/api/roles'));
