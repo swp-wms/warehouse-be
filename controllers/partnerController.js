@@ -6,7 +6,7 @@ let createPartner = async (req, res) => {
     return res.status(200).json({ result });
 }
 let getOnePartner = async (req, res) => {
-    let data = req.body.id; 
+    let data = req.params.id; 
     let result = await partnerService.getOnePartnerServices(data);
     return res.status(200).json({ result });
 }

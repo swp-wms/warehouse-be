@@ -22,10 +22,7 @@ app.get('/', (req, res) => {
 })
 
 // API for partner
-app.post('/partners', partner.createPartner); // addNew
-app.get('/readOnePartner', partner.getOnePartner); //getOne
-app.get('/partners', partner.getAllPartner); //getAll
-app.put('/updatePartner', partner.updatePartner); //update
+
 
 
 //no verify jwt
@@ -39,6 +36,7 @@ app.use('/admin', require('./routers/api/admin'));
 app.use('/change-password', require('./routers/api/changePassword'));
 app.use('/delivery', require('./routers/api/delivery'));
 app.use('/users', require('./routers/api/user'));
+app.use('/partners', require('./routers/api/partner'));
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}...`);
