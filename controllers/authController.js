@@ -34,6 +34,7 @@ const login = async (req, res) => {
         
         const refreshToken = jwt.sign(
             {
+                id: match.id,
                 username: match.username,
                 roleid: match.roleid
             },
@@ -45,6 +46,7 @@ const login = async (req, res) => {
 
         const accessToken = jwt.sign(
             {
+                id: match.id,
                 username: match.username,
                 roleid: match.roleid
             },

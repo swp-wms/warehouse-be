@@ -1,33 +1,34 @@
 const supabase = require("../config/supabaseClient");
 
 const getSupplements = async (req, res) => {
+  try {
     const supplements = await supabase.from("supplementorder").select();
-    res.sent(supplements.data);
-  };
+    if(supplements.error) throw new Error(supplements.error);
+    res.send(supplements.data);
+  } catch (error) {
+    res.sendStatus(500);
+  }
+};
 
 const createSupplements = async (req, res) => {
   const {
-    id,
     type,
-    warehousekeeper,
     orderid,
     note,
     status,
-    createdate,
-    incarneeded,
+    iscarneeded,
   } = req.body;
   const newSupplement = {
-    id: id,
     type: type,
-    warehousekeeper: warehousekeeper,
+    warehousekeeperid: req.id,
     orderid: orderid,
     note: note,
     status: status,
-    createdate: createdate,
-    incarneeded: incarneeded,
+    createdate: new Date(),
+    iscarneeded: iscarneeded,
   };
   const result = await supabase.from("supplementorder").insert(newSupplement);
   res.send(result);
 };
 
-module.exports = { createSupplements };
+module.exports = { getSupplements, createSupplements };
