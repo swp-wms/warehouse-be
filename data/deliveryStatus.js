@@ -8,3 +8,5 @@ const deliveryStatus = {
     DANG_VAN_CHUYEN: '4',
     XONG: '5'
 }
+
+module.exports = deliveryStatus;
