@@ -23,7 +23,7 @@ app.get('/', (req, res) => {
 })
 
 
-app.use('/detail',require('./routers/api/orderDetail'));
+
 
 // API for partner
 app.post('/partners', partner.createPartner); // addNew

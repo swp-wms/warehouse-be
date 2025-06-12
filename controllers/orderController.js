@@ -126,7 +126,7 @@ const searchOrder = async (req,res) => {
   const id = req.params.id; 
 
    if (!id) {
-    return res.status(400).json({ error: error.message });
+    return res.status(400).json({ error: 'Missing order id' });
   }
   const { data, error } = await supabase
   .from('order')
@@ -149,11 +149,13 @@ const searchOrder = async (req,res) => {
 
 const updateOrder = async(req,res) =>{
   const {orderdetail}  = req.body;
+  /**************************
+   * Unfinished, need both accessibility from delivery backend and product backend
+   */
   
-  
-  for(let i = 0; i < orderdetail.length; i++){
+  // for(let i = 0; i < orderdetail.length; i++){
 
-  }
+  // }
   
   const {data, error} = await supabase
   .from('order')
