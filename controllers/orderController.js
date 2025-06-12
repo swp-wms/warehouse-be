@@ -22,7 +22,7 @@ const getAllExportOrders = async(req, res) => {
   if (error) {
     return res.status(500).json({ error: error.message });
   }
-
+  console.log(data);
   res.json(data);
 }
 
@@ -188,21 +188,39 @@ const updateOrder = async(req,res) =>{
 const getOrderDetail = async (req,res) => {
   const id = req.params.orderId;
   if(!id){
-    return res.status(400).json({ error: 'Order ID is required' });
+    return res.status(400).json({ error: 'missing order id' });
   }
 
-  const {data, error} = await supabase
-  .from('order')
-  .select(`*, partner:partnerid(*), orderdetail:orderdetail(*)`)
-  .eq('id',id)
+  // const {data, error} = await supabase
+  // .from('order')
+  // .select(`*, partner:partnerid(*), orderdetail:orderdetail(*,product:productid(*))`)
+  // .eq('id',id)
 
-  if( error ){
-    res.json({error: error.message});
+  // if( error ){
+  //   res.json({error: error.message});
+  // }
+
+  // if(!data || data.length === 0){
+  //   return res.status(404).json({error: 'No details found'})
+  // }
+   const [order, orderDetail] = await Promise.all([
+    supabase .from('order').select(`*,partner:partnerid(*)`).eq('id', id),
+    supabase .from('orderdetailfullinfo').select('*').eq('orderid', id)
+  ]);
+
+  const orderdata = order.data[0];
+  const orderdetail = orderDetail.data;
+  if (!orderdata) {
+    return res.status(404).json({ error: 'Order not found' });
   }
 
-  if(!data || data.length === 0){
-    return res.status(404).json({error: 'No details found'})
+  const data = {
+    ...orderdata,
+    detail: orderdetail
   }
+
+    
+
 
   res.status(200).json(data);
 }

@@ -4,7 +4,7 @@ const cors = require('cors');
 const verifyJwt = require('./middlewares/authMiddleware');
 const credentials = require('./middlewares/credentials');
 const corOptions = require('./config/allowedOrigins');
-
+const partner = require('./controllers/partnerController');
 const express = require('express');
 const app = express();
 require("dotenv").config();
@@ -22,7 +22,16 @@ app.get('/', (req, res) => {
     res.send("Hello World!");
 })
 
+
 app.use('/detail',require('./routers/api/orderDetail'));
+
+// API for partner
+app.post('/partners', partner.createPartner); // addNew
+app.get('/readOnePartner', partner.getOnePartner); //getOne
+app.get('/partners', partner.getAllPartner); //getAll
+app.put('/updatePartner', partner.updatePartner); //update
+
+
 
 //no verify jwt
 app.use('/login', require('./routers/login'));
@@ -31,7 +40,7 @@ app.use('/reset-password', require('./routers/resetPassword'));
 
 // verify jwt
 app.use(verifyJwt);
-
+app.use('/detail' ,require('./routers/api/orderDetail'));
 app.use('/orders', require('./routers/api/order'));
 // app.use('/register', require('./routers/register'));
 app.use('/admin', require('./routers/api/admin'));
