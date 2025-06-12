@@ -40,6 +40,7 @@ app.use('/reset-password', require('./routers/resetPassword'));
 
 // verify jwt
 app.use(verifyJwt);
+//get orders 
 app.use('/detail' ,require('./routers/api/orderDetail'));
 app.use('/orders', require('./routers/api/order'));
 // app.use('/register', require('./routers/register'));
@@ -47,6 +48,16 @@ app.use('/admin', require('./routers/api/admin'));
 app.use('/change-password', require('./routers/api/changePassword'));
 app.use('/delivery', require('./routers/api/delivery'));
 app.use('/users', require('./routers/api/user'));
+
+
+//get roles
+app.use('/role', require('./routers/api/roles'));
+
+//get catalog
+app.use('/catalog', require('./routers/api/catalog'));
+
+//get supplements
+app.use('/supplement', require('./routers/api/supplement'));
 
 
 app.listen(PORT, () => {

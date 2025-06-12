@@ -15,8 +15,8 @@ const generateOtp = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-const sendOtpByEmail = async (email) => {
-    const user = (await supabase.from('user').select().filter('email', 'eq', email).single()).data;
+const sendOtpByEmail = async (email, res) => {
+    const user = (await supabase.from('user').select().filter('username', 'eq', email).single()).data;
 
     if (!user) {
         return res.status(401).json({ message: 'Email người dùng không tồn tại. Vui lòng liên hệ admin để được hỗ trợ.' });
@@ -41,7 +41,7 @@ const sendOtpByEmail = async (email) => {
 };
 
 
-const verifyOtp = async (req, res, next) => {
+const verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
 
     if (!email || !otp || otp.length !== 6) {
@@ -62,8 +62,8 @@ const verifyOtp = async (req, res, next) => {
             return res.status(400).json({ message: 'OTP đã hết hạn.' });
         }
 
-        if (storedOtp.otp !== otp) {
-            console.log(storedOtp);
+        if (Number(storedOtp.otp) === Number(otp)) {
+            console.log(storedOtp, otp);
             
             return res.status(400).json({ message: 'OTP không chính xác.' });
         }
@@ -79,7 +79,7 @@ const verifyOtp = async (req, res, next) => {
 
 const refreshOtp = async (req, res) => {
     const { email } = req.body;
-    await sendOtpByEmail(email);
+    await sendOtpByEmail(email, res);
     res.status(200).json({ message: 'Check mail để lấy mã OTP!' });
 }
 

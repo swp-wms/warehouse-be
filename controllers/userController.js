@@ -2,7 +2,7 @@ const supabase = require('../config/supabaseClient');
 
 const getAllUser = async (req, res) => {
     try {
-        const users = (await supabase.from('user').select('username, roleid, email, role(rolename)')).data;
+        const users = (await supabase.from('user').select('username, roleid, fullname, role(rolename)')).data;
 
         return res.send(users);
     } catch (error) {
@@ -30,7 +30,7 @@ const getUserForAdmin = async (req, res) => {
     const username = req.params.username;
 
     try {
-        const user = (await supabase.from('user').select('username, roleid, email, role(rolename)').eq('username', username)).data[0];
+        const user = (await supabase.from('user').select('username, roleid, role(rolename)').eq('username', username)).data[0];
         if (!user) {
             return res.status(404).json({ message: 'Người dùng không tồn tại.' });
         }
