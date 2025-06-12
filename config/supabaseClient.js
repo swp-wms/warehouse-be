@@ -1,4 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config(); // Đảm bảo có dòng này để nạp biến môi trường
+
 
 const supabase = createClient(
     process.env.SUPABASE_URL,
