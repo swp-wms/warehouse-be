@@ -1,28 +1,47 @@
-const partnerService = require('../Services/partnerServices');
+const supabase = require('../config/supabaseClient');
 
-let createPartner = async (req, res) => {
-    let data = req.body;
-    let result = await partnerService.createPartnerServices(data);
-    return res.status(200).json({ result });
+const getAllPartner = async (req, res) => {
+    try {
+        const partners = await supabase.from('partner').select('*');
+        res.status(200).json(partners.data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 }
-let getOnePartner = async (req, res) => {
-    let data = req.body.id; 
-    let result = await partnerService.getOnePartnerServices(data);
-    return res.status(200).json({ result });
+
+const getPartnerById = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const partner = await supabase.from('partner').select('*').eq('id', id);
+        res.status(200).json(partner.data[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 }
-let getAllPartner = async (req, res) => {
-    let data = req.body;
-    let result = await partnerService.getAllPartnerServices();
-    return res.status(200).json({ result });
+
+const createNewPartner = async (req, res) => {
+    try {
+        const newPartner = req.body;
+        console.log(newPartner);
+        
+        const partner = await supabase.from('partner').insert(newPartner).select('*');
+        console.log(partner);
+        
+        res.status(200).json(partner.data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 }
-let updatePartner = async (req, res) => {
-    let data = req.body;
-    let result = await partnerService.updatePartnerServices(data);
-    return res.status(200).json({ result });
+
+const updatePartnerByID = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const newPartner = req.body;
+        const partner = await supabase.from('partner').update(newPartner).eq('id', id).select('*');
+        res.status(200).json(partner.data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 }
-module.exports = {
-    createPartner,
-    getOnePartner,
-    getAllPartner,
-    updatePartner
-}
+
+module.exports = { getAllPartner, getPartnerById, createNewPartner, updatePartnerByID };

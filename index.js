@@ -23,16 +23,6 @@ app.get('/', (req, res) => {
 })
 
 
-
-
-// API for partner
-app.post('/partners', partner.createPartner); // addNew
-app.get('/readOnePartner', partner.getOnePartner); //getOne
-app.get('/partners', partner.getAllPartner); //getAll
-app.put('/updatePartner', partner.updatePartner); //update
-
-
-
 //no verify jwt
 app.use('/login', require('./routers/login'));
 app.use('/logout', require('./routers/logout'));
@@ -58,6 +48,12 @@ app.use('/catalog', require('./routers/api/catalog'));
 
 //get supplements
 app.use('/supplement', require('./routers/api/supplement'));
+
+// get partner
+app.use('/partners', require('./routers/api/partner'));
+
+// get product
+app.use('/products', require('./routers/api/product'));
 
 
 app.listen(PORT, () => {
