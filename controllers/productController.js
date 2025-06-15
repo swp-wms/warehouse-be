@@ -1,7 +1,7 @@
 const supabase = require('../config/supabaseClient');
 
 const getAllProduct = async (req, res) => {
-    const { data, error } = await supabase.from('product').select('*');
+    const { data, error } = await supabase.from('product').select('*, catalog(*), partner(*)');
     if (error) {
         return res.status(400).json({ error: error.message });
     }
