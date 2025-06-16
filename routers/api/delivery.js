@@ -12,8 +12,8 @@ const { getOneDelivery,
 const verifyRoles = require('../../middlewares/roleMiddleware');
 const role = require('../../data/role');
 
-router.route('/export').get(verifyRoles(role.SALESMAN), getDeliveryListForExportOrderList);
-router.route('/import').get(verifyRoles(role.SALESMAN), getDeliveryListForImportOrderList);
+router.route('/export').get(verifyRoles(role.SALESMAN, role.DELIVERY_STAFF, role.WAREHOUSE_KEEPER), getDeliveryListForExportOrderList);
+router.route('/import').get(verifyRoles(role.SALESMAN, role.DELIVERY_STAFF, role.WAREHOUSE_KEEPER), getDeliveryListForImportOrderList);
 
 router.route('/:deliveryId')
     .get(verifyRoles(role.DELIVERY_STAFF, role.SALESMAN, role.WAREHOUSE_KEEPER), getOneDelivery)
