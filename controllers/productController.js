@@ -105,7 +105,7 @@ const updateProductQuantityById = async (req, res) => {
             return res.status(404).json({ error: 'Product not found' });
         }
 
-        res.status(200).json("Updated:" + data[0]);
+        res.status(200).json({message: "Updated successfully", updated: data[0]});
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

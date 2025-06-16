@@ -11,6 +11,8 @@ router.route('/')
 router.route('/:id')
     .get(verifyRoles(role.SALESMAN, role.WAREHOUSE_KEEPER), product.getOneProductById)
     .put(verifyRoles(role.SALESMAN), product.updateProductInformationById)
-    .put(verifyRoles(role.WAREHOUSE_KEEPER), product.updateProductQuantityById);
+
+router.route('/quantity/:id')
+    .put(verifyRoles(role.WAREHOUSE_KEEPER), product.updateProductQuantityById)
 
 module.exports = router;
