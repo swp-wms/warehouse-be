@@ -22,15 +22,11 @@ app.get('/', (req, res) => {
     res.send("Hello World!");
 })
 
-
-
-
 // API for partner
 app.post('/partners', partner.createPartner); // addNew
 app.get('/readOnePartner', partner.getOnePartner); //getOne
 app.get('/partners', partner.getAllPartner); //getAll
 app.put('/updatePartner', partner.updatePartner); //update
-
 
 
 //no verify jwt

@@ -4,11 +4,16 @@ const { getOneDelivery,
     getDeliveryByOrder,
     createDeliveryForOrder,
     addTruckForDelivery,
-    approveDelivery
+    approveDelivery, 
+    getDeliveryListForExportOrderList,
+    getDeliveryListForImportOrderList
 } = require('../../controllers/deliveryController');
 
 const verifyRoles = require('../../middlewares/roleMiddleware');
 const role = require('../../data/role');
+
+router.route('/export').get(verifyRoles(role.SALESMAN), getDeliveryListForExportOrderList);
+router.route('/import').get(verifyRoles(role.SALESMAN), getDeliveryListForImportOrderList);
 
 router.route('/:deliveryId')
     .get(verifyRoles(role.DELIVERY_STAFF, role.SALESMAN, role.WAREHOUSE_KEEPER), getOneDelivery)
