@@ -21,8 +21,6 @@ app.use(express.urlencoded({ extended: false }))
 app.get('/', (req, res) => {
     res.send("Hello World!");
 })
-
-
 //no verify jwt
 app.use('/login', require('./routers/login'));
 app.use('/logout', require('./routers/logout'));
