@@ -38,7 +38,7 @@ const getDeliveryByOrder = async (req, res) => {
         if (delivery.length === 0) {
             return res.send({ message: 'Không tìm thấy thông tin giao hàng!' });
         }
-        if(req.roleid = role.WAREHOUSE_KEEPER){
+        if(req.roleid === role.WAREHOUSE_KEEPER){
             delivery = delivery.filter(d => Number(d.deliverystatus) >= 3);
         }
         res.send(delivery);
