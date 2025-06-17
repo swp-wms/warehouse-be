@@ -8,13 +8,13 @@ router.route('/')
     .post(verifyRoles(role.SALESMAN),orderController.createNewOrder)
 
 router.route('/import')
-    .get(verifyRoles(role.SALESMAN,role.WAREHOUSE_KEEPER,role.DELIVERY_MANAGER),orderController.getAllImportOrders)
+    .get(verifyRoles(role.SALESMAN,role.WAREHOUSE_KEEPER,role.DELIVERY_STAFF),orderController.getAllImportOrders)
 router.route('/export')
-    .get(verifyRoles(role.SALESMAN,role.WAREHOUSE_KEEPER,role.DELIVERY_MANAGER),orderController.getAllExportOrders)
+    .get(verifyRoles(role.SALESMAN,role.WAREHOUSE_KEEPER,role.DELIVERY_STAFF),orderController.getAllExportOrders)
 
 router.route('/:id')
     .put(verifyRoles(role.SALESMAN),orderController.updateOrder)
-    .get(verifyRoles(role.SALESMAN,role.WAREHOUSE_KEEPER,role.DELIVERY_MANAGER),orderController.searchOrder)
+    .get(verifyRoles(role.SALESMAN,role.WAREHOUSE_KEEPER,role.DELIVERY_STAFF),orderController.searchOrder)
 
     
 module.exports = router;

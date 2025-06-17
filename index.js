@@ -21,8 +21,6 @@ app.use(express.urlencoded({ extended: false }))
 app.get('/', (req, res) => {
     res.send("Hello World!");
 })
-
-
 //no verify jwt
 app.use('/login', require('./routers/login'));
 app.use('/logout', require('./routers/logout'));
@@ -55,6 +53,8 @@ app.use('/partners', require('./routers/api/partner'));
 // get product
 app.use('/products', require('./routers/api/product'));
 
+// get total weight of warehouse
+app.use('/warehouse', require('./routers/api/warehouse'));
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}...`);
