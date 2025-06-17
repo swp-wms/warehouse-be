@@ -42,4 +42,8 @@ const putCatalog = async (req, res) => {
     
 };
 
+const searchcatalog = async (req, res) => {
+  
+}
+
 module.exports = { getCatalog, postCatalog, putCatalog };

@@ -31,7 +31,7 @@ const validateOrderFields = (order) => {
   return (
     order.type &&
     order.partnerid &&
-    order.salesman &&
+    order.salesmanid &&
     order.totalbars !== undefined && order.totalbars !== null &&
     order.totalweight !== undefined && order.totalweight !== null
   );
@@ -53,7 +53,7 @@ const buildNewOrder = (req) => {
   return {
     type: req.body.type,
     partnerid: req.body.partnerid,
-    salesman: req.body.salesman,
+    salesmanid: req.body.salesmanid,
     totalbars: req.body.totalbars,
     totalweight: req.body.totalweight,
     address: req.body.address || '',
@@ -72,7 +72,7 @@ const buildOrderDetailArray = (orderdetail, orderId) => {
 }
 
 const createNewOrder = async (req, res) => {
-  const newOrder = buildNewOrder(req);
+  const newOrder = buildNewOrder(req.body);
   const { orderdetail } = req.body;
 
   if (!orderdetail || !Array.isArray(orderdetail) || orderdetail.length === 0) {

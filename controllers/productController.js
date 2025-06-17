@@ -1,11 +1,10 @@
 const supabase = require('../config/supabaseClient');
 
 const getAllProduct = async (req, res) => {
-    try {
-        const products = await supabase.from('product').select('*, catalog(*)');
-        res.status(200).json(products.data);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    const { data, error } = await supabase.from('product').select('*, catalog(*), partner(*)');
+    if (error) {
+        return res.status(400).json({ error: error.message });
+
     }
 }
 
@@ -36,6 +35,10 @@ const createNewProduct = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+
+    console.log(data);
+    res.status(200).json(data);
+
 }
 
 const updateProductInformationById = async (req, res) => {
