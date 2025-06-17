@@ -2,7 +2,7 @@ const supabase = require('../config/supabaseClient');
 
 const getAllProduct = async (req, res) => {
     try {
-        const products = await supabase.from('product').select('*');
+        const products = await supabase.from('product').select('*, catalog(*)');
         res.status(200).json(products.data);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -110,5 +110,6 @@ const updateProductQuantityById = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 module.exports = { getAllProduct, getOneProductById, createNewProduct, updateProductInformationById, updateProductQuantityById };
