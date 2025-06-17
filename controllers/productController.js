@@ -28,6 +28,7 @@ const createNewProduct = async (req, res) => {
     if (error) {
         return res.status(400).json({ error: error.message });
     }
+    console.log(data);
     res.status(200).json(data);
 }
 
