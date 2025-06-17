@@ -1,4 +1,6 @@
 const supabase = require("../config/supabaseClient");
+const deliveryStatus = require('../data/deliveryStatus');
+const role = require("../data/role");
 
 const getOneDelivery = async (req, res) => {
     try {
@@ -32,9 +34,12 @@ const getOneDelivery = async (req, res) => {
 const getDeliveryByOrder = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const delivery = (await supabase.from('delivery').select().eq('orderid', orderId)).data;
+        let delivery = (await supabase.from('delivery').select().eq('orderid', orderId)).data;
         if (delivery.length === 0) {
             return res.send({ message: 'Không tìm thấy thông tin giao hàng!' });
+        }
+        if(req.roleid === role.WAREHOUSE_KEEPER){
+            delivery = delivery.filter(d => Number(d.deliverystatus) >= 3);
         }
         res.send(delivery);
     } catch (error) {
@@ -51,7 +56,9 @@ const createDeliveryForOrder = async (req, res) => {
             return res.status(404).json({ message: 'Không tìm thấy đơn hàng!' });
         }
 
-        const { deliverydate, deliverytime, gettime, getdate, note, listDeliveryDetail } = req.body;
+        const { deliverydate, deliverytime, gettime, getdate, note, listDeliveryDetail } = req.body.newDelivery;
+        console.log(req.body.newDelivery);
+        
         if (!deliverydate || !deliverytime) {
             return res.status(400).json({ message: 'Ngày vận chuyển và thời gian vận chuyển là bắt buộc!' });
         }
@@ -59,15 +66,24 @@ const createDeliveryForOrder = async (req, res) => {
             return res.status(400).json({ message: 'Một xe hàng không thể để trống!' });
         }
 
-        const delivery = await supabase.from('delivery').insert({ orderid: order.id, deliverydate, deliverytime, gettime, getdate, note, deliverystatus: 'Chờ gán xe' }).select();
+        const delivery = await supabase.from('delivery').insert({ orderid: order.id, deliverydate, deliverytime, gettime, getdate, note, deliverystatus: deliveryStatus.CHO_GAN_XE }).select();
 
         const deliveryid = delivery.data[0].id;
 
-        listDeliveryDetail.map(item => {
-            item.deliveryid = deliveryid;
-        });
+        const standardList = [];
+        for (let index = 0; index < listDeliveryDetail.length; index++) {
+            standardList.push({
+                deliveryid: deliveryid,
+                orderdetailid: listDeliveryDetail[index].orderdetailid,
+                numberofbars: listDeliveryDetail[index].numberofbars,
+                totalweight: listDeliveryDetail[index].totalweight,
+                note: listDeliveryDetail[index].note ? listDeliveryDetail[index].note : ''
+            })
+        }
+        console.log(standardList);
+        
 
-        await supabase.from('deliverydetail').insert(listDeliveryDetail);
+        await supabase.from('deliverydetail').insert(standardList);
 
         res.sendStatus(200);
     } catch (error) {
@@ -109,7 +125,9 @@ const addTruckForDelivery = async (req, res) => {
                 message: 'Không tìm thấy giao hàng!'
             })
         }
-        const { drivername, drivercode, driverphonenumber, licenseplate } = req.body;
+        console.log(req.body);
+        
+        const { drivername, drivercode, driverphonenumber, licenseplate } = req.body.driver;
         if (!drivername || !drivercode || !driverphonenumber || !licenseplate) {
             return res.status(400).json({ message: 'Vui lòng điền đủ thông tin tài xế và xe!' });
         }
@@ -119,7 +137,7 @@ const addTruckForDelivery = async (req, res) => {
                 drivercode,
                 driverphonenumber,
                 licenseplate,
-                deliverystatus: 'Chờ duyệt'
+                deliverystatus: deliveryStatus.CHO_DUYET_XE
             }).eq('id', deliveryId);
 
         res.sendStatus(200);
@@ -137,13 +155,13 @@ const approveDelivery = async (req, res) => {
             return res.sendStatus(404);
         }
 
-        if (delivery.deliverystatus !== 'Chờ duyệt') {
+        if (delivery.deliverystatus !== deliveryStatus.CHO_DUYET_XE) {
             return res.sendStatus(400);
         }
 
         const { deliverystatus } = req.body;
 
-        await supabase.from('delivery').update({ 'deliverystatus': deliverystatus ? "Chờ" : "Từ chối xe" }).eq('id', deliveryId);
+        await supabase.from('delivery').update({ 'deliverystatus': deliverystatus ? deliveryStatus.CHO : deliveryStatus.TU_CHOI_XE }).eq('id', deliveryId);
 
         res.sendStatus(200);
     } catch (error) {
