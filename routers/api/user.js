@@ -3,7 +3,8 @@ const router = express.Router();
 const { 
     getUser, 
     getAllUser, 
-    getUserForAdmin
+    getUserForAdmin,
+    updateUser
 } = require('../../controllers/userController');
 
 const verifyRoles = require('../../middlewares/roleMiddleware');
@@ -13,6 +14,9 @@ router.route('/')
     .get(verifyRoles(role.SYSTEM_ADMIN), getAllUser);
 
 router.route('/me').get(getUser);
-router.route('/:username').get(verifyRoles(role.SYSTEM_ADMIN), getUserForAdmin);
+
+router.route('/:id')
+    .get(verifyRoles(role.SYSTEM_ADMIN), getUserForAdmin)
+    .put(updateUser);
 
 module.exports = router;
