@@ -190,6 +190,8 @@ const confirmNotEnoughCarDelivery = async (req, res) => {
 const confirmIsDeliverying = async (req, res) => {
     try {
         const { deliveryId } = req.params;
+        console.log(deliveryId);
+        
         const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
 
         if (!delivery) {
@@ -200,8 +202,9 @@ const confirmIsDeliverying = async (req, res) => {
             return res.sendStatus(400);
         }
 
-        await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.DANG_VAN_CHUYEN }).eq('id', deliveryId);
-
+        const {error, data} = (await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.DANG_VAN_CHUYEN }).eq('id', deliveryId));
+        console.log(data);
+        
         res.sendStatus(200);
     } catch (error) {
         res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
