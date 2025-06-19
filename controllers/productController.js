@@ -6,6 +6,7 @@ const getAllProduct = async (req, res) => {
         return res.status(400).json({ error: error.message });
 
     }
+    res.status(200).json(data);
 }
 
 const getOneProductById = async (req, res) => {
