@@ -4,7 +4,7 @@ const supabase = require('../config/supabaseClient');
 const getAllImportOrders = async(req, res) => {
   const { data, error } = await supabase
   .from('order')
-  .select(`*,partner(*)`)
+  .select(`*,partner(*),orderdetail:orderdetail(*)`)
   .eq('type', 'I'); // Assuming 'I' is for import orders
   if (error) {
     return res.status(500).json({ error: error.message });
@@ -17,7 +17,7 @@ const getAllImportOrders = async(req, res) => {
 const getAllExportOrders = async(req, res) => {
   const { data, error } = await supabase
   .from('order')
-  .select(`*,partner(*)`)
+  .select(`*,partner(*),orderdetail:orderdetail(*)`)
   .eq('type', 'E'); // Assuming 'E' is for export orders
   if (error) {
     return res.status(500).json({ error: error.message });
@@ -29,11 +29,9 @@ const getAllExportOrders = async(req, res) => {
 // Helper to validate required fields
 const validateOrderFields = (order) => {
   return (
-    order.type &&
-    order.partnerid &&
-    order.salesmanid &&
-    order.totalbars !== undefined && order.totalbars !== null &&
-    order.totalweight !== undefined && order.totalweight !== null
+    order.type !== null &&
+    order.partnerid !== null &&
+    order.salesmanid !== null
   );
 };
 
@@ -42,24 +40,22 @@ const validateOrderDetail = (orderdetail) => {
 
 
   return (
-    orderdetail.productid &&
-    orderdetail.quantity !== undefined && orderdetail.quantity !== null &&
-    orderdetail.price !== undefined && orderdetail.price !== null
+    orderdetail.productid !== null &&
+    orderdetail.numberofbars !== undefined && orderdetail.numberofbars !== null &&
+    orderdetail.weight !== undefined && orderdetail.weight !== null
   );
 };
 
 // Helper to build new order object
-const buildNewOrder = (req) => {
+const buildNewOrder = (body) => {
   return {
-    type: req.body.type,
-    partnerid: req.body.partnerid,
-    salesmanid: req.body.salesmanid,
-    totalbars: req.body.totalbars,
-    totalweight: req.body.totalweight,
-    address: req.body.address || '',
+    type: body.type,
+    partnerid: body.partnerid,
+    salesmanid: body.salesmanid,
+    address: body.address || '',
     status: "0%",
     createdate: new Date().toISOString().split('T')[0],
-    note: req.body.note || '',
+    note: body.note || '',
   };
 }
 
