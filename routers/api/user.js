@@ -4,14 +4,17 @@ const {
     getUser, 
     getAllUser, 
     getUserForAdmin,
-    updateUser
+    updateUser,
+    getAllUserForAdmin
 } = require('../../controllers/userController');
 
 const verifyRoles = require('../../middlewares/roleMiddleware');
 const role = require('../../data/role');
 
 router.route('/')
-    .get(verifyRoles(role.SYSTEM_ADMIN), getAllUser);
+    // .get(verifyRoles(role.SYSTEM_ADMIN), getAllUser)
+    .get(verifyRoles(role.SYSTEM_ADMIN), getAllUserForAdmin);
+    
 
 router.route('/me').get(getUser);
 

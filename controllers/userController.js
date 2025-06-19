@@ -71,4 +71,15 @@ const updateUser = async (req, res) => {
     }
 }
 
-module.exports = { getAllUser, getUser, getUserForAdmin, updateUser }
+const getAllUserForAdmin = async (req, res) => {
+    try {
+        const users = (await supabase.from('user').select('id, username, fullname, role(rolename), status')).data;
+
+        return res.send(users);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
+    }
+}
+
+module.exports = { getAllUser, getUser, getUserForAdmin, updateUser, getAllUserForAdmin };
