@@ -20,10 +20,10 @@ const getOneDelivery = async (req, res) => {
 
             }
         }
-        res.send({ 
+        res.send({
             deliveryDetail,
             sum, realsum
-         });
+        });
     } catch (error) {
         console.log(error);
 
@@ -38,7 +38,7 @@ const getDeliveryByOrder = async (req, res) => {
         if (delivery.length === 0) {
             return res.send({ message: 'Không tìm thấy thông tin giao hàng!' });
         }
-        if(req.roleid === role.WAREHOUSE_KEEPER){
+        if (req.roleid === role.WAREHOUSE_KEEPER) {
             delivery = delivery.filter(d => Number(d.deliverystatus) >= 3);
         }
         res.send(delivery);
@@ -57,8 +57,7 @@ const createDeliveryForOrder = async (req, res) => {
         }
 
         const { deliverydate, deliverytime, gettime, getdate, note, listDeliveryDetail } = req.body.newDelivery;
-        console.log(req.body.newDelivery);
-        
+
         if (!deliverydate || !deliverytime) {
             return res.status(400).json({ message: 'Ngày vận chuyển và thời gian vận chuyển là bắt buộc!' });
         }
@@ -81,7 +80,7 @@ const createDeliveryForOrder = async (req, res) => {
             })
         }
         console.log(standardList);
-        
+
 
         await supabase.from('deliverydetail').insert(standardList);
 
@@ -126,7 +125,7 @@ const addTruckForDelivery = async (req, res) => {
             })
         }
         console.log(req.body);
-        
+
         const { drivername, drivercode, driverphonenumber, licenseplate } = req.body.driver;
         if (!drivername || !drivercode || !driverphonenumber || !licenseplate) {
             return res.status(400).json({ message: 'Vui lòng điền đủ thông tin tài xế và xe!' });
@@ -168,6 +167,97 @@ const approveDelivery = async (req, res) => {
         res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
     }
 }
+const confirmNotEnoughCarDelivery = async (req, res) => {
+    try {
+        const { deliveryId } = req.params;
+        const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
+
+        if (!delivery) {
+            return res.sendStatus(404);
+        }
+
+        if (delivery.deliverystatus !== deliveryStatus.CHO_GAN_XE) {
+            return res.sendStatus(400);
+        }
+
+        await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.HET_XE }).eq('id', deliveryId);
+
+        res.sendStatus(200);
+    } catch (error) {
+        res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
+    }
+}
+const confirmIsDeliverying = async (req, res) => {
+    try {
+        const { deliveryId } = req.params;
+        const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
+
+        if (!delivery) {
+            return res.sendStatus(404);
+        }
+
+        if (delivery.deliverystatus !== deliveryStatus.CHO) {
+            return res.sendStatus(400);
+        }
+
+        await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.DANG_VAN_CHUYEN }).eq('id', deliveryId);
+
+        res.sendStatus(200);
+    } catch (error) {
+        res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
+    }
+}
+
+const updateRealQuantityAndWeight = async (req, res) => {
+    const { deliveryId } = req.params;
+    try {
+        const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
+        if (!delivery || Number(delivery.deliverystatus) !== 4) {
+            return res.status(400).json({ message: 'Bạn không được update thông tin của đơn vận chuyển này!' });
+        }
+        const deliveryDetail = (await supabase.rpc('get_delivery_detail', { searchid: deliveryId })).data;
+        let realData = req.body;
+
+        for (let index = 0; index < deliveryDetail.length; index++) {
+            let check = false;
+
+            for (let j = 0; j < realData.length; j++) {
+                if (Number(realData[j].productid) === Number(deliveryDetail[index].productid)) {
+                    check = true;
+                    realData[j].orderdetailid = deliveryDetail[index].orderdetailid;
+                }
+            }
+            if (!check) {
+                return res.status(400).json({ message: 'Bạn cần cung cấp đầy đủ thông tin thực tế của hàng hóa.' });
+            }
+        }
+
+        realData = realData.map(e => {
+            return {
+                deliveryid: deliveryId,
+                realnumberofbars: e.realnumberofbars,
+                realtotalweight: e.realtotalweight,
+                orderdetailid: e.orderdetailid
+            }
+        });
+
+        await supabase
+            .from('deliverydetail')
+            .upsert(realData, {
+                onConflict: 'deliveryid, orderdetailid', // Specify your primary key column here
+                ignoreDuplicates: false, // Set to true if you only want to insert new rows and ignore existing ones. For updates, keep it false.
+            })
+            .select();
+
+        await supabase.from('delivery').update({ "deliverystatus": deliveryStatus.XONG }).eq("id", deliveryId);
+
+        res.json({ message: `Cập nhật đơn vận chuyển ${deliveryId} thành công!` });
+    } catch (error) {
+        console.log(error);
+
+        res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
+    }
+}
 
 const getDeliveryListForExportOrderList = async (req, res) => {
     const orders = (await supabase.from('percentperorder').select().eq('type', 'E')).data;
@@ -195,6 +285,9 @@ module.exports = {
     createDeliveryForOrder,
     addTruckForDelivery,
     approveDelivery,
+    confirmNotEnoughCarDelivery,
+    confirmIsDeliverying,
+    updateRealQuantityAndWeight,
     getDeliveryListForImportOrderList,
     getDeliveryListForExportOrderList
 }
