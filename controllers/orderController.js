@@ -4,7 +4,7 @@ const supabase = require('../config/supabaseClient');
 const getAllImportOrders = async(req, res) => {
   const { data, error } = await supabase
   .from('order')
-  .select(`*,partner(*)`)
+  .select(`*,partner(*),orderdetail:orderdetail(*)`)
   .eq('type', 'I'); // Assuming 'I' is for import orders
   if (error) {
     return res.status(500).json({ error: error.message });
@@ -17,7 +17,7 @@ const getAllImportOrders = async(req, res) => {
 const getAllExportOrders = async(req, res) => {
   const { data, error } = await supabase
   .from('order')
-  .select(`*,partner(*)`)
+  .select(`*,partner(*),orderdetail:orderdetail(*)`)
   .eq('type', 'E'); // Assuming 'E' is for export orders
   if (error) {
     return res.status(500).json({ error: error.message });
