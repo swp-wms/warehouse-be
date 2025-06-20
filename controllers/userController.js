@@ -82,4 +82,18 @@ const getAllUserForAdmin = async (req, res) => {
     }
 }
 
-module.exports = { getAllUser, getUser, getUserForAdmin, updateUser, getAllUserForAdmin };
+const createNewUser = async (req, res) => {
+    try {
+        const newUser = req.body;
+        console.log(newUser);
+        
+        const user = await supabase.from('user').insert(newUser).select('*');
+        console.log(newUser);
+        
+        res.status(200).json(user.data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
+module.exports = { getAllUser, getUser, getUserForAdmin, updateUser, getAllUserForAdmin, createNewUser };
