@@ -88,7 +88,7 @@ const createNewUser = async (req, res) => {
         console.log(newUser);
         
         const user = await supabase.from('user').insert(newUser).select('*');
-        console.log(newUser);
+        console.log(user);
         
         res.status(200).json(user.data);
     } catch (error) {
