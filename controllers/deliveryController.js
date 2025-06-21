@@ -1,5 +1,6 @@
 const supabase = require("../config/supabaseClient");
 const deliveryStatus = require('../data/deliveryStatus');
+const orderStatus = require('../data/orderStatus');
 const role = require("../data/role");
 
 const getOneDelivery = async (req, res) => {
@@ -126,7 +127,7 @@ const addTruckForDelivery = async (req, res) => {
         }
         console.log(req.body);
 
-        const { drivername, drivercode, driverphonenumber, licenseplate } = req.body.driver;
+        const { drivername, drivercode, driverphonenumber, licenseplate, note } = req.body.driver;
         if (!drivername || !drivercode || !driverphonenumber || !licenseplate) {
             return res.status(400).json({ message: 'Vui lòng điền đủ thông tin tài xế và xe!' });
         }
@@ -136,7 +137,8 @@ const addTruckForDelivery = async (req, res) => {
                 drivercode,
                 driverphonenumber,
                 licenseplate,
-                deliverystatus: deliveryStatus.CHO_DUYET_XE
+                deliverystatus: deliveryStatus.CHO_DUYET_XE,
+                note
             }).eq('id', deliveryId);
 
         res.sendStatus(200);
@@ -190,21 +192,43 @@ const confirmNotEnoughCarDelivery = async (req, res) => {
 const confirmIsDeliverying = async (req, res) => {
     try {
         const { deliveryId } = req.params;
-        console.log(deliveryId);
-        
+        const { act } = req.body;
+
         const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
 
         if (!delivery) {
             return res.sendStatus(404);
         }
 
-        if (delivery.deliverystatus !== deliveryStatus.CHO) {
-            return res.sendStatus(400);
+        if (act !== 'nhap' || delivery.deliverystatus !== deliveryStatus.CHO) {
+            return res.status(400).json({ message: 'Bạn không được quyền thay đổi trạng thái giao hàng!' });
         }
 
-        const {error, data} = (await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.DANG_VAN_CHUYEN }).eq('id', deliveryId));
-        console.log(data);
-        
+        const { error, data } = (await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.DANG_VAN_CHUYEN }).eq('id', deliveryId));
+
+        res.sendStatus(200);
+    } catch (error) {
+        res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
+    }
+}
+
+const confirmCompleteDeliverying = async (req, res) => {
+    try {
+        const { deliveryId } = req.params;
+        const { act } = req.body;
+
+        const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
+
+        if (!delivery) {
+            return res.sendStatus(404);
+        }
+
+        if (act !== 'xuat' || delivery.deliverystatus !== deliveryStatus.DANG_VAN_CHUYEN) {
+            return res.status(400).json({ message: 'Bạn không được quyền thay đổi trạng thái giao hàng!' });
+        }
+
+        const { error, data } = (await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.XONG }).eq('id', deliveryId));
+
         res.sendStatus(200);
     } catch (error) {
         res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
@@ -215,11 +239,19 @@ const updateRealQuantityAndWeight = async (req, res) => {
     const { deliveryId } = req.params;
     try {
         const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
-        if (!delivery || Number(delivery.deliverystatus) !== 4) {
+        if (!delivery || Number(delivery.deliverystatus) < 3 || Number(delivery.deliverystatus) === 5) {
             return res.status(400).json({ message: 'Bạn không được update thông tin của đơn vận chuyển này!' });
         }
         const deliveryDetail = (await supabase.rpc('get_delivery_detail', { searchid: deliveryId })).data;
-        let realData = req.body;
+        let { realData, act } = req.body;
+        console.log(req.body);
+
+        if (act === 'nhap' && delivery.deliverystatus !== deliveryStatus.DANG_VAN_CHUYEN) {
+            return res.status(400).json({ message: 'Bạn chưa được update thông tin của đơn vận chuyển này!' });
+        }
+        if (act === 'xuat' && delivery.deliverystatus !== deliveryStatus.CHO) {
+            return res.status(400).json({ message: 'Bạn chưa được update thông tin của đơn vận chuyển này!' });
+        }
 
         for (let index = 0; index < deliveryDetail.length; index++) {
             let check = false;
@@ -252,9 +284,31 @@ const updateRealQuantityAndWeight = async (req, res) => {
             })
             .select();
 
-        await supabase.from('delivery').update({ "deliverystatus": deliveryStatus.XONG }).eq("id", deliveryId);
+        await supabase.from('delivery').update({ "deliverystatus": act === 'nhap' ? deliveryStatus.XONG : deliveryStatus.DANG_VAN_CHUYEN }).eq("id", deliveryId);
 
         res.json({ message: `Cập nhật đơn vận chuyển ${deliveryId} thành công!` });
+    } catch (error) {
+        console.log(error);
+
+        res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
+    }
+}
+
+const checkOrderComplete = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const order = (await supabase.from('percentperorder').select().eq('orderid', orderId).single()).data;
+        if (!order) {
+            return res.sendStatus(404);
+        }
+        if (order.percent < 90) {
+            return res.status(400).json({ message: 'Đơn hàng phải hoàn thành ít nhất 90% trước khi cập nhật trạng thái Xong.' })
+        }
+
+        const {data, error} = await supabase.from('order').update({ "status": orderStatus.COMPLETE }).eq("id", orderId);
+        console.log(data, error);
+        
+        res.sendStatus(200);
     } catch (error) {
         console.log(error);
 
@@ -292,5 +346,7 @@ module.exports = {
     confirmIsDeliverying,
     updateRealQuantityAndWeight,
     getDeliveryListForImportOrderList,
-    getDeliveryListForExportOrderList
+    getDeliveryListForExportOrderList,
+    checkOrderComplete,
+    confirmCompleteDeliverying
 }

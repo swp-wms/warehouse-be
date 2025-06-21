@@ -7,6 +7,7 @@ const { getOneDelivery,
     approveDelivery,
     confirmNotEnoughCarDelivery,
     confirmIsDeliverying,
+    confirmCompleteDeliverying,
     updateRealQuantityAndWeight,
     getDeliveryListForExportOrderList,
     getDeliveryListForImportOrderList
@@ -27,6 +28,7 @@ router.route('/:deliveryId/real').put(verifyRoles(role.WAREHOUSE_KEEPER), update
 router.route('/:deliveryId/approve').put(verifyRoles(role.SALESMAN), approveDelivery);
 router.route('/:deliveryId/not-enough-truck').put(verifyRoles(role.DELIVERY_STAFF), confirmNotEnoughCarDelivery);
 router.route('/:deliveryId/is-deliverying').put(verifyRoles(role.DELIVERY_STAFF), confirmIsDeliverying);
+router.route('/:deliveryId/complete').put(verifyRoles(role.DELIVERY_STAFF), confirmCompleteDeliverying);
 
 router.route('/order/:orderId')
     .get(verifyRoles(role.DELIVERY_STAFF, role.SALESMAN, role.WAREHOUSE_KEEPER), getDeliveryByOrder)
