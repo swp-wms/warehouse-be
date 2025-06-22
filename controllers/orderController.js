@@ -189,38 +189,60 @@ const getOrderDetail = async (req,res) => {
     return res.status(400).json({ error: 'missing order id' });
   }
 
-  // const {data, error} = await supabase
-  // .from('order')
-  // .select(`*, partner:partnerid(*), orderdetail:orderdetail(*,product:productid(*))`)
-  // .eq('id',id)
+  const {data, error} = await supabase
+  .from('order')
+  .select(`*, partner(*), orderdetail(*,product:product(*,catalog(*)))`)
+  .eq('id',id)
 
-  // if( error ){
-  //   res.json({error: error.message});
-  // }
-
-  // if(!data || data.length === 0){
-  //   return res.status(404).json({error: 'No details found'})
-  // }
-   const [order, orderDetail] = await Promise.all([
-    supabase .from('order').select(`*,partner:partnerid(*)`).eq('id', id),
-    supabase .from('orderdetailfullinfo').select('*').eq('orderid', id)
-  ]);
-
-  const orderdata = order.data[0];
-  const orderdetail = orderDetail.data;
-  if (!orderdata) {
-    return res.status(404).json({ error: 'Order not found' });
+  if( error ){
+    res.json({error: error.message});
   }
 
-  const data = {
-    ...orderdata,
-    detail: orderdetail
+  if(!data || data.length === 0){
+    return res.status(404).json({error: 'No details found'})
   }
+  //  const [order, orderDetail] = await Promise.all([
+  //   supabase .from('order').select(`*,partner:partnerid(*)`).eq('id', id),
+  //   supabase .from('orderdetailfullinfo').select('*').eq('orderid', id)
+  // ]);
+
+  // const orderdata = order.data[0];
+  // const orderdetail = orderDetail.data;
+  // if (!orderdata) {
+  //   return res.status(404).json({ error: 'Order not found' });
+  // }
+
+  // const data = {
+  //   ...orderdata,
+  //   detail: orderdetail
+  // }
 
     
 
 
   res.status(200).json(data);
+}
+
+
+const getDeliveryDetailForOrder = async(req, res) => {
+    const {id} = req.params;
+    if(!id){
+      return res.status(400).json({message: 'Thiếu thông tin đơn hàng'});
+    }
+
+    const { data, error } = await supabase
+    .from('delivery')
+    .select('id,orderid,deliverydetail(*)')
+    .eq('orderid', id)
+    .neq('deliverystatus', 0); // Add more .eq, .neq, .like, etc. for more conditions
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+    if (!data || data.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy thông tin giao hàng cho đơn hàng này.' });
+    }
+    return res.json(data);
 }
 
 
@@ -230,5 +252,6 @@ module.exports ={
     createNewOrder,
     searchOrder,
     updateOrder,
-    getOrderDetail
+    getOrderDetail,
+    getDeliveryDetailForOrder
 }
