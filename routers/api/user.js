@@ -15,7 +15,7 @@ const role = require('../../data/role');
 router.route('/')
     // .get(verifyRoles(role.SYSTEM_ADMIN), getAllUser)
     .get(verifyRoles(role.SYSTEM_ADMIN), getAllUserForAdmin)
-    .post(verifyRoles(role.SYSTEM_ADMIN), createNewUser);
+    // .post(verifyRoles(role.SYSTEM_ADMIN), createNewUser);
 
 router.route('/me').get(getUser);
 

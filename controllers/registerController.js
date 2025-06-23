@@ -2,10 +2,10 @@ const supabase = require("../config/supabaseClient");
 const bcrypt = require("bcrypt");
 
 const register = async (req, res) => {
-    const { roleId, username, password } = req.body;
-    if (!username || !password || !roleId) {
+    const { roleid, username, password, fullname } = req.body;
+    if (!username || !password || !roleid || !fullname) {
         return res.status(400).json({
-            message: 'All field must be filled!'
+            message: 'Vui lòng điền đầy đủ thông tin!'
         });
     }
 
@@ -21,7 +21,8 @@ const register = async (req, res) => {
         const result = await supabase.from('user').insert({
             username,
             password: hashedPassword,
-            roleid: roleId
+            roleid: roleid,
+            fullname: fullname
         });
         if (result.error) {
             return res.send(result.error);
