@@ -1,7 +1,7 @@
 const orderStatus = {
-    "NOT_COMPLETE": "0",
-    "COMPLETE": "1",
-    "CANCEL": "-1"
+    NOT_COMPLETE: '0',
+    COMPLETE: '1',
+    CANCEL: '-1'
 }
 
-module.export = orderStatus;
+module.exports = orderStatus;

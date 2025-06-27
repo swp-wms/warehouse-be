@@ -4,7 +4,12 @@ const { getOneDelivery,
     getDeliveryByOrder,
     createDeliveryForOrder,
     addTruckForDelivery,
-    approveDelivery, 
+    approveDelivery,
+    confirmNotEnoughCarDelivery,
+    confirmIsDeliverying,
+    confirmCompleteDeliverying,
+    updateRealQuantityAndWeight,
+    cancelDelivery,
     getDeliveryListForExportOrderList,
     getDeliveryListForImportOrderList
 } = require('../../controllers/deliveryController');
@@ -19,7 +24,13 @@ router.route('/:deliveryId')
     .get(verifyRoles(role.DELIVERY_STAFF, role.SALESMAN, role.WAREHOUSE_KEEPER), getOneDelivery)
     .put(verifyRoles(role.DELIVERY_STAFF), addTruckForDelivery);
 
+router.route('/:deliveryId/real').put(verifyRoles(role.WAREHOUSE_KEEPER), updateRealQuantityAndWeight);
+
 router.route('/:deliveryId/approve').put(verifyRoles(role.SALESMAN), approveDelivery);
+router.route('/:deliveryId/not-enough-truck').put(verifyRoles(role.DELIVERY_STAFF), confirmNotEnoughCarDelivery);
+router.route('/:deliveryId/is-deliverying').put(verifyRoles(role.DELIVERY_STAFF), confirmIsDeliverying);
+router.route('/:deliveryId/complete').put(verifyRoles(role.DELIVERY_STAFF), confirmCompleteDeliverying);
+router.route('/:deliveryId/cancel').put(verifyRoles(role.SALESMAN), cancelDelivery);
 
 router.route('/order/:orderId')
     .get(verifyRoles(role.DELIVERY_STAFF, role.SALESMAN, role.WAREHOUSE_KEEPER), getDeliveryByOrder)
