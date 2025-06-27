@@ -9,6 +9,7 @@ const { getOneDelivery,
     confirmIsDeliverying,
     confirmCompleteDeliverying,
     updateRealQuantityAndWeight,
+    cancelDelivery,
     getDeliveryListForExportOrderList,
     getDeliveryListForImportOrderList
 } = require('../../controllers/deliveryController');
@@ -29,6 +30,7 @@ router.route('/:deliveryId/approve').put(verifyRoles(role.SALESMAN), approveDeli
 router.route('/:deliveryId/not-enough-truck').put(verifyRoles(role.DELIVERY_STAFF), confirmNotEnoughCarDelivery);
 router.route('/:deliveryId/is-deliverying').put(verifyRoles(role.DELIVERY_STAFF), confirmIsDeliverying);
 router.route('/:deliveryId/complete').put(verifyRoles(role.DELIVERY_STAFF), confirmCompleteDeliverying);
+router.route('/:deliveryId/cancel').put(verifyRoles(role.SALESMAN), cancelDelivery);
 
 router.route('/order/:orderId')
     .get(verifyRoles(role.DELIVERY_STAFF, role.SALESMAN, role.WAREHOUSE_KEEPER), getDeliveryByOrder)

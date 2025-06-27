@@ -51,10 +51,14 @@ const getDeliveryByOrder = async (req, res) => {
 const createDeliveryForOrder = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const order = (await supabase.from('order').select().eq('id', orderId).single()).data;
+        const order = (await supabase.from('order').select("*, user(id)").eq('id', orderId).single()).data;
 
         if (!order) {
             return res.status(404).json({ message: 'Không tìm thấy đơn hàng!' });
+        }
+
+        if(order.user.id !== req.id) {
+            return res.status(401).json({ message: 'Bạn không phải người tạo đơn hàng. Bạn không có quyền thêm vận chuyển!' });    
         }
 
         const { deliverydate, deliverytime, gettime, getdate, note, listDeliveryDetail } = req.body.newDelivery;
@@ -305,9 +309,30 @@ const checkOrderComplete = async (req, res) => {
             return res.status(400).json({ message: 'Đơn hàng phải hoàn thành ít nhất 90% trước khi cập nhật trạng thái Xong.' })
         }
 
-        const {data, error} = await supabase.from('order').update({ "status": orderStatus.COMPLETE }).eq("id", orderId);
+        const { data, error } = await supabase.from('order').update({ "status": orderStatus.COMPLETE }).eq("id", orderId);
         console.log(data, error);
-        
+
+        res.sendStatus(200);
+    } catch (error) {
+        console.log(error);
+
+        res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
+    }
+}
+
+const cancelDelivery = async (req, res) => {
+    const { deliveryId } = req.params;
+    try {
+        const delivery = (await supabase.from('delivery').select().eq("id", deliveryId).single()).data;
+
+        if (delivery.deliverystatus === deliveryStatus.XONG) {
+            return res.status(400).json({ message: 'Đơn hàng này đã hoàn thành. Bạn không thể hủy.' });
+        }
+        if (delivery.deliverystatus === deliveryStatus.DANG_VAN_CHUYEN) {
+            return res.status(400).json({ message: 'Đơn hàng này đang trên đường vận chuyển. Bạn không thể hủy.' });
+        }
+
+        await supabase.from('delivery').update({ "deliverystatus": deliveryStatus.HUY }).eq("id", deliveryId);
         res.sendStatus(200);
     } catch (error) {
         console.log(error);
@@ -348,5 +373,6 @@ module.exports = {
     getDeliveryListForImportOrderList,
     getDeliveryListForExportOrderList,
     checkOrderComplete,
+    cancelDelivery,
     confirmCompleteDeliverying
 }
