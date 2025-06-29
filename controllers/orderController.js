@@ -140,47 +140,119 @@ const searchOrder = async (req,res) => {
   res.status(200).json(data);
 }
 
+const getOrderDetailById = async (id) => {
+  const { data, error } = await supabase
+  .from('orderdetail')
+  .select('*')
+  .eq('orderid', id);
+  if (error) {
+    throw new Error(error.message);
+  }
+  
+  return data;
+}
 
 
+
+
+
+const isSubmittedOrderDetailExistsInDatabase = (dbOrderDetail, newOrderDetail) => {
+  
+  return dbOrderDetail.some(detail =>
+    detail.id === newOrderDetail.id
+  );
+};
 
 const updateOrder = async(req,res) =>{
-  const {orderdetail}  = req.body;
-  /**************************
-   * Unfinished, need both accessibility from delivery backend and product backend
-   */
-  
-  // for(let i = 0; i < orderdetail.length; i++){
-
-  // }
-  
-  const {data, error} = await supabase
-  .from('order')
-  .update({
-    
-      type: req.body.type,
-      partnerid : req.body.partnerid,
-      totalbars: req.body.totalbars,
-      totalweight: req.body.totalweight,
-      address: req.body.address || '',
-      note: req.body.note || ''
-    
-  })
-  .eq('id',req.params.id)
-  .select('*,partner(*)');
 
 
-  if (error) {
-    return res.status(500).json({ error: error.message });
+  const order = req.body;
+
+  if (order) {
+    const dbOrderDetail = await getOrderDetailById(req.params.id);
+    const newOrderDetail = order.orderdetail || [];
+    if (newOrderDetail.length === 0) {
+      return res.status(400).json({ error: 'orderdetail must be a non-empty array' });
+    }
+
+    for (let i = 0; i < newOrderDetail.length; i++) {
+      if (!validateOrderDetail(newOrderDetail[i])) {
+        return res.status(400).json({ error: 'Missing either productid, quantity or price in orderdetail' });
+      }
+    }
+
+    // Prepare batch operations
+    const updates = [];
+    const inserts = [];
+    const newOrderDetailIds = newOrderDetail.map(detail => detail.id);
+
+    newOrderDetail.forEach(detail => {
+      if (detail.id && isSubmittedOrderDetailExistsInDatabase(dbOrderDetail, detail)) {
+        updates.push({
+          id: detail.id,
+          productid: detail.productid,
+          numberofbars: detail.numberofbars,
+          weight: detail.weight
+        });
+      } else if (!isSubmittedOrderDetailExistsInDatabase(dbOrderDetail, detail)) {
+        inserts.push({
+          productid: detail.productid,
+          numberofbars: detail.numberofbars,
+          weight: detail.weight,
+          orderid: req.params.id
+        });
+      }
+    });
+
+    const deleteOrderDetailList = dbOrderDetail.filter(detail => !newOrderDetailIds.includes(detail.id));
+    const deleteIds = deleteOrderDetailList.map(detail => detail.id).filter(id => id !== null);
+
+    // Only one {data, error} for all DB operations
+    let data = null, error = null;
+
+    // Batch update
+    if (updates.length > 0) {
+      for (const upd of updates) {
+        ({ data, error } = await supabase
+          .from('orderdetail')
+          .update({
+            productid: upd.productid,
+            numberofbars: upd.numberofbars,
+            weight: upd.weight
+          })
+          .eq('id', upd.id)
+          .select('*'));
+        if (error) break;
+      }
+    }
+
+    // Batch insert
+    if (!error && inserts.length > 0) {
+      ({ data, error } = await supabase
+        .from('orderdetail')
+        .insert(inserts)
+        .select('*'));
+    }
+
+    // Batch delete
+    if (!error && deleteIds.length > 0) {
+      ({ data, error } = await supabase
+        .from('orderdetail')
+        .delete()
+        .in('id', deleteIds)
+        .select('*'));
+    }
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    return res.status(200).json({ message: 'Cập nhật đơn hàng thành công' });
   }
-
-  if(!data) {
-    return res.status(404).json({ error: 'No order matched the given ID' });
-  
+  else{
+    return res.status(400).json({ error: 'Missing order data' });
   }
-
-  return res.status(200).json(
-    data[0]
-  );
+  
 }
 
 const getOrderDetail = async (req,res) => {
@@ -189,38 +261,60 @@ const getOrderDetail = async (req,res) => {
     return res.status(400).json({ error: 'missing order id' });
   }
 
-  // const {data, error} = await supabase
-  // .from('order')
-  // .select(`*, partner:partnerid(*), orderdetail:orderdetail(*,product:productid(*))`)
-  // .eq('id',id)
+  const {data, error} = await supabase
+  .from('order')
+  .select(`*, partner(*), orderdetail(*,product:product(*,catalog(*)))`)
+  .eq('id',id)
 
-  // if( error ){
-  //   res.json({error: error.message});
-  // }
-
-  // if(!data || data.length === 0){
-  //   return res.status(404).json({error: 'No details found'})
-  // }
-   const [order, orderDetail] = await Promise.all([
-    supabase .from('order').select(`*,partner:partnerid(*)`).eq('id', id),
-    supabase .from('orderdetailfullinfo').select('*').eq('orderid', id)
-  ]);
-
-  const orderdata = order.data[0];
-  const orderdetail = orderDetail.data;
-  if (!orderdata) {
-    return res.status(404).json({ error: 'Order not found' });
+  if( error ){
+    return res.json({error: error.message});
   }
 
-  const data = {
-    ...orderdata,
-    detail: orderdetail
+  if(!data || data.length === 0){
+    return res.status(404).json({error: 'No details found'})
   }
+  //  const [order, orderDetail] = await Promise.all([
+  //   supabase .from('order').select(`*,partner:partnerid(*)`).eq('id', id),
+  //   supabase .from('orderdetailfullinfo').select('*').eq('orderid', id)
+  // ]);
+
+  // const orderdata = order.data[0];
+  // const orderdetail = orderDetail.data;
+  // if (!orderdata) {
+  //   return res.status(404).json({ error: 'Order not found' });
+  // }
+
+  // const data = {
+  //   ...orderdata,
+  //   detail: orderdetail
+  // }
 
     
 
 
   res.status(200).json(data);
+}
+
+
+const getDeliveryDetailForOrder = async(req, res) => {
+    const {id} = req.params;
+    if(!id){
+      return res.status(400).json({message: 'Thiếu thông tin đơn hàng'});
+    }
+
+    const { data, error } = await supabase
+    .from('delivery')
+    .select('id,orderid,deliverydetail(*)')
+    .eq('orderid', id)
+    .neq('deliverystatus', 0); // Add more .eq, .neq, .like, etc. for more conditions
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+    if (!data || data.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy thông tin giao hàng cho đơn hàng này.' });
+    }
+    return res.json(data);
 }
 
 
@@ -230,5 +324,6 @@ module.exports ={
     createNewOrder,
     searchOrder,
     updateOrder,
-    getOrderDetail
+    getOrderDetail,
+    getDeliveryDetailForOrder
 }

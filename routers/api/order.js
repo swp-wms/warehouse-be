@@ -20,5 +20,7 @@ router.route('/:id')
     .put(verifyRoles(role.SALESMAN),orderController.updateOrder)
     .get(verifyRoles(role.SALESMAN,role.WAREHOUSE_KEEPER,role.DELIVERY_STAFF),orderController.searchOrder)
 
+router.route('/delivery/:id')
+    .get(verifyRoles(role.SALESMAN), orderController.getDeliveryDetailForOrder)
     
 module.exports = router;

@@ -35,7 +35,7 @@ const getOneDelivery = async (req, res) => {
 const getDeliveryByOrder = async (req, res) => {
     try {
         const { orderId } = req.params;
-        let delivery = (await supabase.from('delivery').select().eq('orderid', orderId)).data;
+        let delivery = (await supabase.from('d  elivery').select().eq('orderid', orderId)).data;
         if (delivery.length === 0) {
             return res.send({ message: 'Không tìm thấy thông tin giao hàng!' });
         }
@@ -359,7 +359,6 @@ const getDeliveryListForImportOrderList = async (req, res) => {
     }
     return res.send(orders);
 }
-
 
 module.exports = {
     getOneDelivery,
