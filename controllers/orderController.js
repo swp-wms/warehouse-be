@@ -177,7 +177,7 @@ const updateOrder = async(req,res) =>{
 
     for (let i = 0; i < newOrderDetail.length; i++) {
       if (!validateOrderDetail(newOrderDetail[i])) {
-        return res.json({ error: 'Missing either productid, quantity or price in orderdetail' });
+        return res.status(400).json({ error: 'Missing either productid, quantity or price in orderdetail' });
       }
     }
 
@@ -249,7 +249,10 @@ const updateOrder = async(req,res) =>{
 
     return res.status(200).json({ message: 'Cập nhật đơn hàng thành công' });
   }
- 
+  else{
+    return res.status(400).json({ error: 'Missing order data' });
+  }
+  
 }
 
 const getOrderDetail = async (req,res) => {
@@ -264,7 +267,7 @@ const getOrderDetail = async (req,res) => {
   .eq('id',id)
 
   if( error ){
-    res.json({error: error.message});
+    return res.json({error: error.message});
   }
 
   if(!data || data.length === 0){

@@ -8,7 +8,7 @@ const { getRemainNumberOfBars } = require('../../controllers/orderDetailControll
 
 
 router.route('/:orderId')
-    .get(verifyRoles(role.SALESMAN), orderController.getOrderDetail)
+    .get(verifyRoles(role.SALESMAN,role.WAREHOUSE_KEEPER,role.DELIVERY_STAFF), orderController.getOrderDetail)
 
 router.route('/:orderid/remain').get(getRemainNumberOfBars);
 
