@@ -58,8 +58,10 @@ const updateUser = async (req, res) => {
             }
         }
 
-        const { username, fullname, image, phonenumber, address, dateofbirth, gender } = req.body;
-        const { error } = await supabase.from('user').update({ username, fullname, image, phonenumber, address, dateofbirth, gender }).eq('id', id);
+        // const { username, fullname, image, phonenumber, address, dateofbirth, gender } = req.body;
+        // const { error } = await supabase.from('user').update({ username, fullname, image, phonenumber, address, dateofbirth, gender }).eq('id', id);
+        const { username, fullname, image, phonenumber, address, dateofbirth, gender, status } = req.body;
+        const { error } = await supabase.from('user').update({ username, fullname, image, phonenumber, address, dateofbirth, gender, status }).eq('id', id);
         if (error) {
             return res.status(400).json({ message: error.message });
         }
