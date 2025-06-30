@@ -70,16 +70,12 @@ const buildOrderDetailArray = (orderdetail, orderId) => {
 const createNewOrder = async (req, res) => {
   const newOrder = buildNewOrder(req.body);
   const { orderdetail } = req.body;
-
   if (!orderdetail || !Array.isArray(orderdetail) || orderdetail.length === 0) {
     return res.status(400).json({ error: 'orderdetail must be a non-empty array' });
   }
-
   if (!validateOrderFields(newOrder)) {
     return res.status(400).json({ error: 'Missing either of these required fields (type, partnerid, salesman, totalbars, totalweight) please try again!' });
   }
-
-  
   for(let i = 0; i < orderdetail.length; i++){
     if(!validateOrderDetail(orderdetail[i])){
       return res.json({ error: 'Missing either productid, quantity or price in orderdetail' });
@@ -96,31 +92,24 @@ const createNewOrder = async (req, res) => {
   if (orderError) {
     return res.status(500).json({ error: orderError.message });
   }
-
   const orderId = orderData.id;
   const orderDetailArray = buildOrderDetailArray(orderdetail, orderId);
-  
-  
   const { data: orderDetailData, error: orderDetailError } = await supabase
     .from('orderdetail')
     .insert(orderDetailArray);
-
   if (orderDetailError) {
     return res.status(500).json({ error: orderDetailError.message });
   }
-
   const orderInfo = {
     id: orderId,
     ...newOrder,
     orderdetail: orderDetailData
   };
-
   res.status(201).json({ order: orderInfo });
 };
 
 const searchOrder = async (req,res) => {
   const id = req.params.id; 
-
    if (!id) {
     return res.status(400).json({ error: 'Missing order id' });
   }
@@ -132,11 +121,9 @@ const searchOrder = async (req,res) => {
   if(error){
     return res.status(500).json({error: error.message});
   }
-
   if(!data){
     return res.status(404).json({ error: 'Order not found' });
   }
-
   res.status(200).json(data);
 }
 
@@ -148,13 +135,8 @@ const getOrderDetailById = async (id) => {
   if (error) {
     throw new Error(error.message);
   }
-  
   return data;
 }
-
-
-
-
 
 const isSubmittedOrderDetailExistsInDatabase = (dbOrderDetail, newOrderDetail) => {
   
@@ -242,17 +224,14 @@ const updateOrder = async(req,res) =>{
         .in('id', deleteIds)
         .select('*'));
     }
-
     if (error) {
       return res.status(500).json({ error: error.message });
     }
-
     return res.status(200).json({ message: 'Cập nhật đơn hàng thành công' });
   }
   else{
     return res.status(400).json({ error: 'Missing order data' });
   }
-  
 }
 
 const getOrderDetail = async (req,res) => {
@@ -288,10 +267,6 @@ const getOrderDetail = async (req,res) => {
   //   ...orderdata,
   //   detail: orderdetail
   // }
-
-    
-
-
   res.status(200).json(data);
 }
 
@@ -307,7 +282,6 @@ const getDeliveryDetailForOrder = async(req, res) => {
     .select('id,orderid,deliverydetail(*)')
     .eq('orderid', id)
     .neq('deliverystatus', 0); // Add more .eq, .neq, .like, etc. for more conditions
-
     if (error) {
       return res.status(500).json({ error: error.message });
     }
