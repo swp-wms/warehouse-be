@@ -90,4 +90,24 @@ const getSupplementsByOrderId = async (req, res) => {
   }
 }
 
-module.exports = { getSupplements, createSupplements, getSupplementsByOrderId };
+const getSupplementById = async (req,res) =>{
+  try{
+    const {id} = req.params
+    const result = await supabase
+    .from("supplementorder")
+    .select(`*,detail:orderdetail(*,product:product(*,catalog(*)))`)
+    .eq('id',id);
+     if(result.error) {
+      console.log(result.error.message)
+      throw new Error(result.error.message);
+    }
+    console.log(result.data[0])
+    res.send(result.data[0])
+
+  }catch (error){
+    console.log("error: ", error)
+    return res.status(500).json({error: error.message})
+  }
+}
+
+module.exports = { getSupplements, createSupplements, getSupplementsByOrderId,getSupplementById };
