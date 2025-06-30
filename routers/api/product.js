@@ -6,7 +6,7 @@ const product = require("../../controllers/productController");
 
 router
   .route("/")
-  .get(verifyRoles(role.SALESMAN, role.WAREHOUSE_KEEPER), product.getAllProduct)
+  .get(verifyRoles(role.SALESMAN, role.WAREHOUSE_KEEPER, role.DELIVERY_STAFF), product.getAllProduct)
   .post(verifyRoles(role.SALESMAN), product.createNewProduct);
 
 router
