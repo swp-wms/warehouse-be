@@ -40,18 +40,41 @@ const createSupplements = async (req, res) => {
     console.log(supplementResult);
     const supplementId = supplementResult.data[0].id;
 
+    /*************************
+     *detail{                *
+     * orderid : number      *
+     * productid: number,    *
+     * numberofbars: number, *
+     * weight: number        *
+     *}                      *
+    *************************/
 
-    // { supplementorderid: supplementResult.data[0].id }];
     const detailWithSupplementId = detail.map(detailBit => ({
       ...detailBit, supplementorderid: supplementId 
     })); 
+
+    /******************************* 
+     * detailWithSupplementId: {   *
+     *   orderid : number          *
+     *   supplementorderid: number,*
+     *   productid: number,        *
+     *   numberofbars: number,     *
+     *   weight: number            *
+     * }
+    ********************************/
+
+
+
     if (supplementResult.error) {
       return res.status(400).json({ error: supplementResult.error.message });
     }
     
-    
+    //insert order detail
     if (detail && detail.length > 0) {
-      const detailResult = await supabase.from("orderdetail").insert(detailWithSupplementId);
+      const detailResult = await supabase
+      .from("orderdetail")
+      .insert(detailWithSupplementId)
+      
       
       if (detailResult.error) {
         console.log(detailResult.error.message)
@@ -60,6 +83,53 @@ const createSupplements = async (req, res) => {
         .delete()
         .eq("id",supplementId)
         return res.status(400).json({ error: detailResult.error.message });
+      }
+
+      //update product totalbar and totalweight
+      else{
+        
+        const productIdArray = detail.map(d =>  d.productid)
+      /************************************
+       * productIdArray: [1,2,3]
+       *************************************/
+
+        const productToUpdate = await supabase
+        .from("product")
+        .select(`id,totalbar,totalweight`)
+        .in("id",productIdArray.data)
+        /*********************************************
+         * productToUpdate: [                        *
+         *  { id: 1, totalbar: 0, totalweight: 0 },  *
+         *  { id: 2, totalbar: 0, totalweight: 0 },  *
+         *  {id: 3, totalbar: 0, totalweight: 0 } ]  *
+         *********************************************/
+        console.log("productToUpdate", productToUpdate.data);
+        //find and update product totalbar and totalweight
+        productToUpdate.data.forEach(element => {
+          detail.forEach(e => {
+            if(element.id == e.productid){
+              element.totalbar +=e.numberofbars;
+              element.totalweight += e.weight;
+            }
+          })
+        });
+        
+        //upsert product
+        const updatedProducts = await supabase
+        .from("product")
+        .upsert(productToUpdate.data, { onConflict: "id" })
+        .select();
+        if (updatedProducts.error) {
+          //if failed then delete supplement order
+          console.log(updatedProducts.error.message)
+          await supabase
+          .from("supplementorder")
+          .delete()
+          .eq("id",supplementId)
+          return res.status(400).json({ error: updatedProducts.error.message });
+        }
+
+        console.log("updatedProducts", updatedProducts.data);
       }
     }
     
@@ -76,7 +146,7 @@ const getSupplementsByOrderId = async (req, res) => {
     const id = req.params.orderId
     const result = await supabase
     .from("supplementorder")
-    .select("*,detail:orderdetail(*)")
+    .select("*,creator:user(fullname),detail:orderdetail(*)")
     .eq("orderid",id)
     
     if(result.error) {
@@ -95,7 +165,7 @@ const getSupplementById = async (req,res) =>{
     const {id} = req.params
     const result = await supabase
     .from("supplementorder")
-    .select(`*,detail:orderdetail(*,product:product(*,catalog(*)))`)
+    .select(`*,creator:user(fullname),detail:orderdetail(*,product:product(*,catalog(*)))`)
     .eq('id',id);
      if(result.error) {
       console.log(result.error.message)
