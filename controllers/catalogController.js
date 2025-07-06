@@ -86,7 +86,8 @@ const updateCatalog = async (req,res) => {
       .from('catalog')
       .upsert(catalogUpdates, { 
         onConflict: ['brandname', 'steeltype'] // Composite key
-      });
+      })
+      .select();
     
     if (result.error) {
       console.error('Upsert error:', error);
