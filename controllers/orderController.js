@@ -10,7 +10,8 @@ const getAllImportOrders = async(req, res) => {
     return res.status(500).json({ error: error.message });
   }
   
-  res.json(data);
+  updatedData = await updateOrderStatus(data);
+  res.json(updatedData);
 }
 
 
@@ -22,8 +23,8 @@ const getAllExportOrders = async(req, res) => {
   if (error) {
     return res.status(500).json({ error: error.message });
   }
-  console.log(data);
-  res.json(data);
+  updatedData = await updateOrderStatus(data);
+  res.json(updatedData);
 }
 
 // Helper to validate required fields
@@ -291,6 +292,42 @@ const getDeliveryDetailForOrder = async(req, res) => {
     return res.json(data);
 }
 
+
+const getPercentByOrder = async () => {
+  const result = await supabase
+  .from('percentperorder')
+  .select('orderid, percent')
+
+  if(result.error){
+    console.log("Error: ",result.error)
+    return result.error;
+  }
+  return result.data;
+}
+
+
+const updateOrderStatus = async (orderList) => {
+  try{
+    const percentageList = await getPercentByOrder();
+    const updatedOrders = orderList.map(order =>{
+      const item = percentageList.find(p => p.orderid === order.id)
+      const percentage = item && order.status !=="Hủy"? item.percent:order.status;
+      
+      return {
+        ...order,
+        status: percentage === "Hủy"? "Hủy":`${parseFloat(percentage).toFixed(1)}%`
+      };
+    })
+    setTimeout(() => {
+      console.log("order: ", updatedOrders);
+    }, 1000);
+
+
+    return updatedOrders
+  }catch(error){
+    console.error(`Exception updating order status: ${error}`)
+  }
+}
 
 module.exports ={
     getAllImportOrders,

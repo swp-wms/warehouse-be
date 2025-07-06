@@ -37,7 +37,7 @@ const createSupplements = async (req, res) => {
     .from("supplementorder")
     .insert(newSupplement)
     .select();
-    console.log(supplementResult);
+    
     const supplementId = supplementResult.data[0].id;
 
     /*************************
@@ -95,24 +95,31 @@ const createSupplements = async (req, res) => {
 
         const productToUpdate = await supabase
         .from("product")
-        .select(`id,totalbar,totalweight`)
-        .in("id",productIdArray.data)
+        .select(`*`)
+        .in("id", productIdArray);
+
         /*********************************************
          * productToUpdate: [                        *
          *  { id: 1, totalbar: 0, totalweight: 0 },  *
          *  { id: 2, totalbar: 0, totalweight: 0 },  *
-         *  {id: 3, totalbar: 0, totalweight: 0 } ]  *
+         *  { id: 3, totalbar: 0, totalweight: 0 } ] *
          *********************************************/
-        console.log("productToUpdate", productToUpdate.data);
-        //find and update product totalbar and totalweight
+
+        // Find and update product totalbar and totalweight
         productToUpdate.data.forEach(element => {
           detail.forEach(e => {
-            if(element.id == e.productid){
-              element.totalbar +=e.numberofbars;
-              element.totalweight += e.weight;
+            if (element.id === e.productid) {
+              if (type === "I") {
+          element.totalbar += e.numberofbars;
+          element.totalweight += e.weight;
+              } else if (type === "E") {
+          element.totalbar -= e.numberofbars;
+          element.totalweight -= e.weight;
+              }
             }
-          })
+          });
         });
+        console.log("productToUpdate", productToUpdate.data);
         
         //upsert product
         const updatedProducts = await supabase
@@ -121,7 +128,7 @@ const createSupplements = async (req, res) => {
         .select();
         if (updatedProducts.error) {
           //if failed then delete supplement order
-          console.log(updatedProducts.error.message)
+          console.log("Error: ",updatedProducts.error.message)
           await supabase
           .from("supplementorder")
           .delete()
@@ -129,7 +136,7 @@ const createSupplements = async (req, res) => {
           return res.status(400).json({ error: updatedProducts.error.message });
         }
 
-        console.log("updatedProducts", updatedProducts.data);
+        console.log("updatedProducts: ", updatedProducts.data);
       }
     }
     

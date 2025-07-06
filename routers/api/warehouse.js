@@ -6,7 +6,9 @@ const {
   totalWeightofWH,
   sumExport,
   sumImport,
-  totalFutureWeightofWH
+  totalFutureWeightofWH,
+  total_weight_by_brandname,
+  total_weight_by_partner,
 } = require("../../controllers/warehouseController");
 
 router
@@ -21,7 +23,25 @@ router
   .route("/export")
   .get(verifyRoles(role.WAREHOUSE_KEEPER, role.SALESMAN), sumExport);
 
-  router.route("/future/:createdate")
-  .get(verifyRoles(role.WAREHOUSE_KEEPER, role.SALESMAN), totalFutureWeightofWH);
+router
+  .route("/future/:createdate")
+  .get(
+    verifyRoles(role.WAREHOUSE_KEEPER, role.SALESMAN),
+    totalFutureWeightofWH
+  );
+
+router
+  .route("/brandname")
+  .get(
+    verifyRoles(role.WAREHOUSE_KEEPER, role.SALESMAN),
+    total_weight_by_brandname
+  );
+
+router
+  .route("/partner")
+  .get(
+    verifyRoles(role.WAREHOUSE_KEEPER, role.SALESMAN),
+    total_weight_by_partner
+  );
 
 module.exports = router;
