@@ -44,4 +44,22 @@ const sumExport = async (req, res) => {
   }
 };
 
-module.exports = { totalWeightofWH, totalFutureWeightofWH, sumImport, sumExport };
+const total_weight_by_brandname = async (req, res) => {
+  try {
+    const brandname_weight = (await supabase.from("total_weight_by_brandname").select("")).data;
+    res.json(brandname_weight);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const total_weight_by_partner = async (req, res) => {
+  try {
+    const brandname_weight = (await supabase.from("total_weight_by_partner").select("")).data;
+    res.json(brandname_weight);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports = { totalWeightofWH, totalFutureWeightofWH, sumImport, sumExport, total_weight_by_brandname, total_weight_by_partner };
