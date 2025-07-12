@@ -269,6 +269,10 @@ const confirmCompleteDeliverying = async (req, res) => {
         }
 
         const { error, data } = (await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.XONG }).eq('id', deliveryId));
+
+        // update percent in order table
+        await supabase.rpc('update_percent_of_order', { 'order_id': delivery.orderid });
+
         // Send notification to all role 
         const message = `Đơn vận chuyển ${deliveryId} đã hoàn thành.`;
 
@@ -340,6 +344,9 @@ const updateRealQuantityAndWeight = async (req, res) => {
             const message = `Đơn vận chuyển ${deliveryId} đã hoàn thành.`;
 
             await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.WAREHOUSE_KEEPER}${role.DELIVERY_STAFF}${role.SALESMAN}` });
+
+            // update percent in order table
+            await supabase.rpc('update_percent_of_order', { 'order_id': delivery.orderid });
 
             io.to([role.WAREHOUSE_KEEPER, role.DELIVERY_STAFF, role.SALESMAN]).emit('delivery:done', {
                 message: message,
