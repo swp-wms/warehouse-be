@@ -2,6 +2,9 @@ const supabase = require("../config/supabaseClient");
 const deliveryStatus = require('../data/deliveryStatus');
 const orderStatus = require('../data/orderStatus');
 const role = require("../data/role");
+const { getIo } = require('../socket/socket.js');
+
+const io = getIo();
 
 const getOneDelivery = async (req, res) => {
     try {
@@ -57,8 +60,8 @@ const createDeliveryForOrder = async (req, res) => {
             return res.status(404).json({ message: 'Không tìm thấy đơn hàng!' });
         }
 
-        if(order.user.id !== req.id) {
-            return res.status(401).json({ message: 'Bạn không phải người tạo đơn hàng. Bạn không có quyền thêm vận chuyển!' });    
+        if (order.user.id !== req.id) {
+            return res.status(401).json({ message: 'Bạn không phải người tạo đơn hàng. Bạn không có quyền thêm vận chuyển!' });
         }
 
         const { deliverydate, deliverytime, gettime, getdate, note, listDeliveryDetail } = req.body.newDelivery;
@@ -89,35 +92,24 @@ const createDeliveryForOrder = async (req, res) => {
 
         await supabase.from('deliverydetail').insert(standardList);
 
+        // Send notification to delivery about new delivery
+        const message = `Đơn hàng ${orderId} có đơn vận chuyển mới. Bạn cần thêm xe!`;
+
+        await supabase.from('notification').insert({
+            'message': message,
+            'roleid': `${role.DELIVERY_STAFF}`
+        });
+
+        io.to(role.DELIVERY_STAFF).emit('delivery:new', {
+            message: message,
+            created_at: new Date()
+        });
+
         res.sendStatus(200);
     } catch (error) {
         res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
     }
 }
-
-// const updateDeliveryList = async (req, res) => {
-//     try {
-//         const { deliveryId } = req.params;
-//         const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
-
-//         const { drivername, drivercode, driverphonenumber, licenseplate } = req.body;
-//         if (!drivername || !drivercode || !driverphonenumber || !licenseplate) {
-//             return res.status(400).json({ message: 'Vui lòng điền đủ thông tin tài xế và xe!' });
-//         }
-//         await supabase.from('delivery').update(
-//             {
-//                 drivername,
-//                 drivercode,
-//                 driverphonenumber,
-//                 licenseplate,
-//                 deliverystatus: 'Chờ duyệt'
-//             }).eq('id', deliveryId);
-
-//         res.sendStatus(200);
-//     } catch (error) {
-//                 res.status(500).json({message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!'};
-//     }
-// }
 
 const addTruckForDelivery = async (req, res) => {
     try {
@@ -145,6 +137,19 @@ const addTruckForDelivery = async (req, res) => {
                 note
             }).eq('id', deliveryId);
 
+        // Send notification to salesman to approve truck and driver
+        const message = `Đơn vận chuyển ${deliveryId} cần được phê duyệt.`;
+
+        await supabase.from('notification').insert({
+            'message': message,
+            'roleid': `${role.SALESMAN}`
+        });
+
+        io.to(role.SALESMAN).emit('delivery:approve', {
+            message: message,
+            created_at: new Date()
+        });
+
         res.sendStatus(200);
     } catch (error) {
         res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
@@ -166,7 +171,19 @@ const approveDelivery = async (req, res) => {
 
         const { deliverystatus } = req.body;
 
-        await supabase.from('delivery').update({ 'deliverystatus': deliverystatus ? deliveryStatus.CHO : deliveryStatus.TU_CHOI_XE }).eq('id', deliveryId);
+        const deliveryStatusStore = deliverystatus ? deliveryStatus.CHO : deliveryStatus.TU_CHOI_XE;
+
+        await supabase.from('delivery').update({ 'deliverystatus': deliveryStatusStore }).eq('id', deliveryId);
+
+        // Send notification to delivery staff 
+        const message = `Đơn vận chuyển ${deliveryId} ${deliverystatus ? 'đã được phê duyệt' : "đã bị từ chối."}.`;
+
+        await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.DELIVERY_STAFF}` });
+
+        io.to(role.DELIVERY_STAFF).emit('delivery:approved', {
+            message: message,
+            created_at: new Date()
+        });
 
         res.sendStatus(200);
     } catch (error) {
@@ -187,6 +204,16 @@ const confirmNotEnoughCarDelivery = async (req, res) => {
         }
 
         await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.HET_XE }).eq('id', deliveryId);
+
+        // Send notification to salesman 
+        const message = `Đơn vận chuyển ${deliveryId} không thể đáp ứng do không đủ xe.`;
+
+        await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.SALESMAN}` });
+
+        io.to(role.SALESMAN).emit('delivery:not_enough_car', {
+            message: message,
+            created_at: new Date()
+        });
 
         res.sendStatus(200);
     } catch (error) {
@@ -210,6 +237,16 @@ const confirmIsDeliverying = async (req, res) => {
 
         const { error, data } = (await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.DANG_VAN_CHUYEN }).eq('id', deliveryId));
 
+        // Send notification to warehouse keeper 
+        const message = `Đơn vận chuyển ${deliveryId} đang được ${act === 'nhap' ? 'chở về kho' : 'giao đến khách hàng'}.`;
+
+        await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.WAREHOUSE_KEEPER}` });
+
+        io.to(role.WAREHOUSE_KEEPER).emit('delivery:shipping', {
+            message: message,
+            created_at: new Date()
+        });
+
         res.sendStatus(200);
     } catch (error) {
         res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
@@ -232,7 +269,15 @@ const confirmCompleteDeliverying = async (req, res) => {
         }
 
         const { error, data } = (await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.XONG }).eq('id', deliveryId));
+        // Send notification to all role 
+        const message = `Đơn vận chuyển ${deliveryId} đã hoàn thành.`;
 
+        await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.WAREHOUSE_KEEPER}${role.DELIVERY_STAFF}${role.SALESMAN}` });
+
+        io.to([role.WAREHOUSE_KEEPER, role.DELIVERY_STAFF, role.SALESMAN]).emit('delivery:done', {
+            message: message,
+            created_at: new Date()
+        });
         res.sendStatus(200);
     } catch (error) {
         res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
@@ -290,6 +335,28 @@ const updateRealQuantityAndWeight = async (req, res) => {
 
         await supabase.from('delivery').update({ "deliverystatus": act === 'nhap' ? deliveryStatus.XONG : deliveryStatus.DANG_VAN_CHUYEN }).eq("id", deliveryId);
 
+        if (act === 'nhap') {
+            // Send notification to all role 
+            const message = `Đơn vận chuyển ${deliveryId} đã hoàn thành.`;
+
+            await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.WAREHOUSE_KEEPER}${role.DELIVERY_STAFF}${role.SALESMAN}` });
+
+            io.to([role.WAREHOUSE_KEEPER, role.DELIVERY_STAFF, role.SALESMAN]).emit('delivery:done', {
+                message: message,
+                created_at: new Date()
+            });
+        } else {
+            // Send notification to all warehouse keeper
+            const message = `Đơn vận chuyển ${deliveryId} đang được ${act === 'nhap' ? 'chở về kho.' : 'giao đến khách hàng.'}.`;
+
+            await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.WAREHOUSE_KEEPER}` });
+
+            io.to(role.WAREHOUSE_KEEPER).emit('delivery:shipping', {
+                message: message,
+                created_at: new Date()
+            });
+        }
+
         res.json({ message: `Cập nhật đơn vận chuyển ${deliveryId} thành công!` });
     } catch (error) {
         console.log(error);
@@ -333,6 +400,16 @@ const cancelDelivery = async (req, res) => {
         }
 
         await supabase.from('delivery').update({ "deliverystatus": deliveryStatus.HUY }).eq("id", deliveryId);
+
+        // Send notification to all role 
+        const message = `Đơn vận chuyển ${deliveryId} đã bị hủy.`;
+
+        await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.DELIVERY_STAFF}` });
+
+        io.to(role.DELIVERY_STAFF).emit('delivery:cancel', {
+            message: message,
+            created_at: new Date()
+        });
         res.sendStatus(200);
     } catch (error) {
         console.log(error);
