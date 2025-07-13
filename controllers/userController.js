@@ -42,34 +42,65 @@ const getUserForAdmin = async (req, res) => {
 }
 
 const updateUser = async (req, res) => {
-    const id = req.params.id;
+    const id = req.params.id
+
     if (req.id !== id && req.roleid !== 1) {
-        return res.sendStaus(401);
+        return res.status(401).json({ message: "Không có quyền cập nhật thông tin người dùng này." })
     }
+
     try {
-        const user = (await supabase.from('user').select('').eq('id', id)).data[0];
-        if (!user) {
-            return res.status(404).json({ message: 'Người dùng không tồn tại.' });
+        const { data: user, error: selectError } = await supabase.from("user").select("*").eq("id", id)
+        if (selectError) {
+            console.log("Supabase error:", selectError)
+            return res.status(400).json({ message: selectError.message })
         }
+        if (!user || user.length === 0) {
+            return res.status(404).json({ message: "Người dùng không tồn tại." })
+        }
+
+        const { username, fullname, image, phonenumber, address, dateofbirth, gender, status, roleid } = req.body
+
         if (req.roleid === 1 && id !== req.id) {
-            const { error } = await supabase.from('user').update({ 'roleid': req.body.roleid, 'status': req.body.status, 'username': username }).eq('id', id);
-            if (error) {
-                return res.status(400).json({ message: error.message });
+            const updateData = {}
+
+            if (username !== undefined) updateData.username = username
+            if (fullname !== undefined) updateData.fullname = fullname
+            if (image !== undefined) updateData.image = image
+            if (phonenumber !== undefined) updateData.phonenumber = phonenumber
+            if (address !== undefined) updateData.address = address
+            if (dateofbirth !== undefined) updateData.dateofbirth = dateofbirth
+            if (gender !== undefined) updateData.gender = gender
+            if (status !== undefined) updateData.status = status
+            if (roleid !== undefined) updateData.roleid = roleid
+
+            const { error: updateError } = await supabase.from("user").update(updateData).eq("id", id)
+            if (updateError) {
+                console.log("Supabase error:", updateError)
+                return res.status(400).json({ message: updateError.message })
+            }
+        } else {
+            const updateData = {}
+
+            if (username !== undefined) updateData.username = username
+            if (fullname !== undefined) updateData.fullname = fullname
+            if (image !== undefined) updateData.image = image
+            if (phonenumber !== undefined) updateData.phonenumber = phonenumber
+            if (address !== undefined) updateData.address = address
+            if (dateofbirth !== undefined) updateData.dateofbirth = dateofbirth
+            if (gender !== undefined) updateData.gender = gender
+            if (status !== undefined) updateData.status = status
+
+            const { error: updateError } = await supabase.from("user").update(updateData).eq("id", id)
+            if (updateError) {
+                console.log("Supabase error:", updateError)
+                return res.status(400).json({ message: updateError.message })
             }
         }
 
-        // const { username, fullname, image, phonenumber, address, dateofbirth, gender } = req.body;
-        // const { error } = await supabase.from('user').update({ username, fullname, image, phonenumber, address, dateofbirth, gender }).eq('id', id);
-        const { username, fullname, image, phonenumber, address, dateofbirth, gender, status } = req.body;
-        const { error } = await supabase.from('user').update({ username, fullname, image, phonenumber, address, dateofbirth, gender, status }).eq('id', id);
-        if (error) {
-            return res.status(400).json({ message: error.message });
-        }
-
-        return res.status(200).json({ message: `Cập nhật thông tin người dùng thành công!` });
+        return res.status(200).json({ message: "Cập nhật thông tin người dùng thành công!" })
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
+        console.log("Server error:", error)
+        res.status(500).json({ message: "Hệ thống xảy ra lỗi. Vui lòng thử lại sau!" })
     }
 }
 
@@ -88,10 +119,10 @@ const createNewUser = async (req, res) => {
     try {
         const newUser = req.body;
         console.log(newUser);
-        
+
         const user = await supabase.from('user').insert(newUser).select('*');
         console.log(user);
-        
+
         res.status(200).json(user.data);
     } catch (error) {
         res.status(500).json({ error: error.message });
