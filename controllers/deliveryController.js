@@ -66,6 +66,10 @@ const createDeliveryForOrder = async (req, res) => {
 
         const { deliverydate, deliverytime, gettime, getdate, note, listDeliveryDetail } = req.body.newDelivery;
 
+        if (deliverytime !== null || gettime !== null) {
+            return res.status(400).json({ message: 'Thời gian vận chuyển và thời gian bốc hàng do vận chuyển nhập!' });
+        }
+
         if (!deliverydate || !deliverytime) {
             return res.status(400).json({ message: 'Ngày vận chuyển và thời gian vận chuyển là bắt buộc!' });
         }
@@ -73,7 +77,7 @@ const createDeliveryForOrder = async (req, res) => {
             return res.status(400).json({ message: 'Một xe hàng không thể để trống!' });
         }
 
-        const delivery = await supabase.from('delivery').insert({ orderid: order.id, deliverydate, deliverytime, gettime, getdate, note, deliverystatus: deliveryStatus.CHO_GAN_XE }).select();
+        const delivery = await supabase.from('delivery').insert({ orderid: order.id, deliverydate, getdate, note, deliverystatus: deliveryStatus.CHO_GAN_XE }).select();
 
         const deliveryid = delivery.data[0].id;
 
@@ -123,12 +127,18 @@ const addTruckForDelivery = async (req, res) => {
         }
         console.log(req.body);
 
-        const { drivername, drivercode, driverphonenumber, licenseplate, note } = req.body.driver;
+        const { drivername, drivercode, driverphonenumber, licenseplate, note, deliverytime, gettime } = req.body.driver;
         if (!drivername || !drivercode || !driverphonenumber || !licenseplate) {
             return res.status(400).json({ message: 'Vui lòng điền đủ thông tin tài xế và xe!' });
         }
+
+        if(!deliverytime || !gettime) {
+            return res.status(400).json({ message: 'Vui lòng điền đủ thông tin thời gian bốc và giao hàng!' });
+        }
         await supabase.from('delivery').update(
             {
+                gettime,
+                deliverytime,
                 drivername,
                 drivercode,
                 driverphonenumber,
