@@ -1,4 +1,5 @@
 const supabase = require('../config/supabaseClient');
+const bcrypt = require('bcrypt');
 
 const getAllUser = async (req, res) => {
     try {
@@ -58,9 +59,10 @@ const updateUser = async (req, res) => {
             return res.status(404).json({ message: "Người dùng không tồn tại." })
         }
 
-        const { username, fullname, image, phonenumber, address, dateofbirth, gender, status, roleid } = req.body
+        const { username, fullname, image, phonenumber, address, dateofbirth, gender, status, roleid, password } = req.body
 
         if (req.roleid === 1 && id !== req.id) {
+            // Admin cập nhật cho user khác
             const updateData = {}
 
             if (username !== undefined) updateData.username = username
@@ -73,12 +75,20 @@ const updateUser = async (req, res) => {
             if (status !== undefined) updateData.status = status
             if (roleid !== undefined) updateData.roleid = roleid
 
+            if (password !== undefined && password !== "") {
+                const saltRounds = 10
+                const hashedPassword = await bcrypt.hash(password, saltRounds)
+                updateData.password = hashedPassword
+            }
+
             const { error: updateError } = await supabase.from("user").update(updateData).eq("id", id)
             if (updateError) {
                 console.log("Supabase error:", updateError)
                 return res.status(400).json({ message: updateError.message })
             }
         } else {
+
+            // User cập nhật thông tin của chính mình
             const updateData = {}
 
             if (username !== undefined) updateData.username = username
@@ -89,6 +99,12 @@ const updateUser = async (req, res) => {
             if (dateofbirth !== undefined) updateData.dateofbirth = dateofbirth
             if (gender !== undefined) updateData.gender = gender
             if (status !== undefined) updateData.status = status
+
+            if (password !== undefined && password !== "") {
+                const saltRounds = 10
+                const hashedPassword = await bcrypt.hash(password, saltRounds)
+                updateData.password = hashedPassword
+            }
 
             const { error: updateError } = await supabase.from("user").update(updateData).eq("id", id)
             if (updateError) {
