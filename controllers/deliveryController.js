@@ -138,7 +138,7 @@ const addTruckForDelivery = async (req, res) => {
             }).eq('id', deliveryId);
 
         // Send notification to salesman to approve truck and driver
-        const message = `Đơn vận chuyển ${deliveryId} cần được phê duyệt.`;
+        const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} cần được phê duyệt.`;
 
         await supabase.from('notification').insert({
             'message': message,
@@ -176,7 +176,7 @@ const approveDelivery = async (req, res) => {
         await supabase.from('delivery').update({ 'deliverystatus': deliveryStatusStore }).eq('id', deliveryId);
 
         // Send notification to delivery staff 
-        const message = `Đơn vận chuyển ${deliveryId} ${deliverystatus ? 'đã được phê duyệt' : "đã bị từ chối."}.`;
+        const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} ${deliverystatus ? 'đã được phê duyệt' : "đã bị từ chối."}.`;
 
         await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.DELIVERY_STAFF}` });
 
@@ -206,7 +206,7 @@ const confirmNotEnoughCarDelivery = async (req, res) => {
         await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.HET_XE }).eq('id', deliveryId);
 
         // Send notification to salesman 
-        const message = `Đơn vận chuyển ${deliveryId} không thể đáp ứng do không đủ xe.`;
+        const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} không thể đáp ứng do không đủ xe.`;
 
         await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.SALESMAN}` });
 
@@ -238,7 +238,7 @@ const confirmIsDeliverying = async (req, res) => {
         const { error, data } = (await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.DANG_VAN_CHUYEN }).eq('id', deliveryId));
 
         // Send notification to warehouse keeper 
-        const message = `Đơn vận chuyển ${deliveryId} đang được ${act === 'nhap' ? 'chở về kho' : 'giao đến khách hàng'}.`;
+        const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} đang được ${act === 'nhap' ? 'chở về kho' : 'giao đến khách hàng'}.`;
 
         await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.WAREHOUSE_KEEPER}` });
 
@@ -274,9 +274,25 @@ const confirmCompleteDeliverying = async (req, res) => {
         await supabase.rpc('update_percent_of_order', { 'order_id': delivery.orderid });
 
         // Send notification to all role 
-        const message = `Đơn vận chuyển ${deliveryId} đã hoàn thành.`;
+        const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} đã hoàn thành.`;
 
-        await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.WAREHOUSE_KEEPER}${role.DELIVERY_STAFF}${role.SALESMAN}` });
+        // store notif into database
+        const notifs = [];
+        notifs.push(
+            {
+                'message': message,
+                'roleid': role.WAREHOUSE_KEEPER
+            },
+            {
+                'message': message,
+                'roleid': role.DELIVERY_STAFF
+            },
+            {
+                'message': message,
+                'roleid': role.SALESMAN
+            },
+        );
+        await supabase.from('notification').insert(notifs);
 
         io.to([role.WAREHOUSE_KEEPER, role.DELIVERY_STAFF, role.SALESMAN]).emit('delivery:done', {
             message: message,
@@ -341,9 +357,25 @@ const updateRealQuantityAndWeight = async (req, res) => {
 
         if (act === 'nhap') {
             // Send notification to all role 
-            const message = `Đơn vận chuyển ${deliveryId} đã hoàn thành.`;
+            const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} đã hoàn thành.`;
 
-            await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.WAREHOUSE_KEEPER}${role.DELIVERY_STAFF}${role.SALESMAN}` });
+            // store notif into database
+            const notifs = [];
+            notifs.push(
+                {
+                    'message': message,
+                    'roleid': role.WAREHOUSE_KEEPER
+                },
+                {
+                    'message': message,
+                    'roleid': role.DELIVERY_STAFF
+                },
+                {
+                    'message': message,
+                    'roleid': role.SALESMAN
+                },
+            );
+            await supabase.from('notification').insert(notifs);
 
             // update percent in order table
             await supabase.rpc('update_percent_of_order', { 'order_id': delivery.orderid });
@@ -354,7 +386,7 @@ const updateRealQuantityAndWeight = async (req, res) => {
             });
         } else {
             // Send notification to all warehouse keeper
-            const message = `Đơn vận chuyển ${deliveryId} đang được ${act === 'nhap' ? 'chở về kho.' : 'giao đến khách hàng.'}.`;
+            const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} đang được ${act === 'nhap' ? 'chở về kho.' : 'giao đến khách hàng.'}.`;
 
             await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.WAREHOUSE_KEEPER}` });
 
@@ -409,7 +441,7 @@ const cancelDelivery = async (req, res) => {
         await supabase.from('delivery').update({ "deliverystatus": deliveryStatus.HUY }).eq("id", deliveryId);
 
         // Send notification to all role 
-        const message = `Đơn vận chuyển ${deliveryId} đã bị hủy.`;
+        const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} đã bị hủy.`;
 
         await supabase.from('notification').insert({ 'message': message, 'roleid': `${role.DELIVERY_STAFF}` });
 
