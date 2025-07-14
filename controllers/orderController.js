@@ -10,8 +10,9 @@ const getAllImportOrders = async(req, res) => {
     return res.status(500).json({ error: error.message });
   }
   
-  updatedData = await updateOrderStatus(data);
-  res.json(updatedData);
+  // updatedData = await updateOrderStatus(data);
+  // res.json(updatedData);
+  res.json(data);
 }
 
 
@@ -23,8 +24,9 @@ const getAllExportOrders = async(req, res) => {
   if (error) {
     return res.status(500).json({ error: error.message });
   }
-  updatedData = await updateOrderStatus(data);
-  res.json(updatedData);
+  // updatedData = await updateOrderStatus(data);
+  // res.json(updatedData);
+  res.json(data);
 }
 
 // Helper to validate required fields
@@ -54,7 +56,7 @@ const buildNewOrder = (body) => {
     partnerid: body.partnerid,
     salesmanid: body.salesmanid,
     address: body.address || '',
-    status: "0%",
+    status: 0,
     createdate: new Date().toISOString().split('T')[0],
     note: body.note || '',
   };
@@ -315,7 +317,7 @@ const updateOrderStatus = async (orderList) => {
       
       return {
         ...order,
-        status: percentage === "Hủy"? "Hủy":`${parseFloat(percentage).toFixed(1)}%`
+        status: percentage === "Hủy"? "Hủy":parseFloat(percentage).toFixed(1)
       };
     })
     setTimeout(() => {
@@ -328,6 +330,8 @@ const updateOrderStatus = async (orderList) => {
     console.error(`Exception updating order status: ${error}`)
   }
 }
+
+
 
 module.exports ={
     getAllImportOrders,

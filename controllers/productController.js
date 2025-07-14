@@ -132,4 +132,23 @@ const getProductById = async (req,res) =>{
     }
 }
 
-module.exports = { getAllProduct, getOneProductById, createNewProduct, updateProductInformationById, updateProductQuantityById };
+
+const getProductGeneralSteeltypeList = async (req,res) => {
+    try{
+        const result = await supabase
+        .from('product_general_steeltype')
+        .select('*')
+
+        if(result.error){
+            console.error("Error: ", result.error)
+            res.status(500).json({error: error.message})
+        }
+
+        console.log(result.data);
+        res.status(200).json(result.data);
+    }catch(error){
+        console.error("Exception: ", error.message);
+        res.status(500).json({error: error.message})
+    }
+}
+module.exports = { getAllProduct, getOneProductById, createNewProduct, updateProductInformationById, updateProductQuantityById,getProductGeneralSteeltypeList };
