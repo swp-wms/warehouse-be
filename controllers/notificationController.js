@@ -3,8 +3,7 @@ const supabase = require('../config/supabaseClient');
 const getAllNotification = async (req, res) => {
     const roleid = req.roleid;
     try {
-        let notifications = (await supabase.from('notification').select()).data;
-        notifications = notifications.filter((n) => ((String(n.roleid)).includes(roleid)) && !n.status);
+        let notifications = (await supabase.from('notification').select().eq('status', false).eq('roleid', roleid)).data;
         res.send(notifications);
     } catch (error) {
         console.log(error);
@@ -13,6 +12,18 @@ const getAllNotification = async (req, res) => {
     }
 }
 
+const getSeenNotification = async (req, res) => {
+    const roleid = req.roleid;
+    const index = req.params.index;
+    try {
+        let notifications = (await supabase.from('notification').select().eq('status', true).eq('roleid', roleid).order('created_at', { ascending: false }).range(index, index + 5)).data;
+        res.send(notifications);
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+
+    }
+}
 const seenNotification = async (req, res) => {
     const id = req.params.id;
     try {
@@ -27,5 +38,6 @@ const seenNotification = async (req, res) => {
 
 module.exports = {
     getAllNotification,
-    seenNotification
+    seenNotification,
+    getSeenNotification
 }

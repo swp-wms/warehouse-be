@@ -64,14 +64,16 @@ const createDeliveryForOrder = async (req, res) => {
             return res.status(401).json({ message: 'Bạn không phải người tạo đơn hàng. Bạn không có quyền thêm vận chuyển!' });
         }
 
-        const { deliverydate, deliverytime, gettime, getdate, note, listDeliveryDetail } = req.body.newDelivery;
+        const { deliverydate, getdate, note, listDeliveryDetail } = req.body.newDelivery;
+        // console.log(req.body.newDelivery.listDeliveryDetail);
+        
+        
+        // if (deliverytime !== null || gettime !== null) {
+        //     return res.status(400).json({ message: 'Thời gian vận chuyển và thời gian bốc hàng do vận chuyển nhập!' });
+        // }
 
-        if (deliverytime !== null || gettime !== null) {
-            return res.status(400).json({ message: 'Thời gian vận chuyển và thời gian bốc hàng do vận chuyển nhập!' });
-        }
-
-        if (!deliverydate || !deliverytime) {
-            return res.status(400).json({ message: 'Ngày vận chuyển và thời gian vận chuyển là bắt buộc!' });
+        if (!deliverydate || !getdate) {
+            return res.status(400).json({ message: 'Ngày vận chuyển vận chuyển là bắt buộc!' });
         }
         if (listDeliveryDetail === null || listDeliveryDetail.length < 1) {
             return res.status(400).json({ message: 'Một xe hàng không thể để trống!' });
