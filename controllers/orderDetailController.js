@@ -1,6 +1,6 @@
 const supabase = require('../config/supabaseClient');
 
-const getRemainNumberOfBars = async (req, res) => {
+const getRemainWeightOfBars = async (req, res) => {
     const orderid = req.params.orderid;
     try {
         const remains = (await supabase.from('remainweight').select().eq('orderid', orderid).gt('remain', 0)).data;
@@ -10,4 +10,4 @@ const getRemainNumberOfBars = async (req, res) => {
     }
 }
 
-module.exports = { getRemainNumberOfBars }
+module.exports = { getRemainWeightOfBars }

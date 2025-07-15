@@ -1,4 +1,4 @@
-
+const http = require('http');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const verifyJwt = require('./middlewares/authMiddleware');
@@ -9,14 +9,19 @@ const express = require('express');
 const app = express();
 require("dotenv").config();
 require('./config/supabaseClient');
+const { initSocket } = require('./socket/socket.js');
 
 const PORT = 3800;
+app.use(cors(corOptions));
+
+const server = http.createServer(app);
+initSocket(server);
 
 app.use(credentials);
-app.use(cors(corOptions));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }))
+
 
 app.get('/', (req, res) => {
     res.send("Hello World!");
@@ -29,7 +34,7 @@ app.use('/reset-password', require('./routers/resetPassword'));
 // verify jwt
 app.use(verifyJwt);
 //get orders 
-app.use('/detail' ,require('./routers/api/orderDetail'));
+app.use('/detail', require('./routers/api/orderDetail'));
 app.use('/orders', require('./routers/api/order'));
 // app.use('/register', require('./routers/register'));
 app.use('/admin', require('./routers/api/admin'));
@@ -56,6 +61,9 @@ app.use('/products', require('./routers/api/product'));
 // get total weight of warehouse
 app.use('/warehouse', require('./routers/api/warehouse'));
 
-app.listen(PORT, () => {
+// get notificaiton
+app.use('/notification', require('./routers/api/notification.js'));
+
+server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}...`);
 });

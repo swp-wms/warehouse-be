@@ -2,6 +2,9 @@ const supabase = require("../config/supabaseClient");
 const deliveryStatus = require('../data/deliveryStatus');
 const orderStatus = require('../data/orderStatus');
 const role = require("../data/role");
+const { getIo } = require('../socket/socket.js');
+
+const io = getIo();
 
 const getOneDelivery = async (req, res) => {
     try {
@@ -57,11 +60,15 @@ const createDeliveryForOrder = async (req, res) => {
             return res.status(404).json({ message: 'Không tìm thấy đơn hàng!' });
         }
 
-        if(order.user.id !== req.id) {
-            return res.status(401).json({ message: 'Bạn không phải người tạo đơn hàng. Bạn không có quyền thêm vận chuyển!' });    
+        if (order.user.id !== req.id) {
+            return res.status(401).json({ message: 'Bạn không phải người tạo đơn hàng. Bạn không có quyền thêm vận chuyển!' });
         }
 
         const { deliverydate, deliverytime, gettime, getdate, note, listDeliveryDetail } = req.body.newDelivery;
+
+        if (deliverytime !== null || gettime !== null) {
+            return res.status(400).json({ message: 'Thời gian vận chuyển và thời gian bốc hàng do vận chuyển nhập!' });
+        }
 
         if (!deliverydate || !deliverytime) {
             return res.status(400).json({ message: 'Ngày vận chuyển và thời gian vận chuyển là bắt buộc!' });
@@ -70,7 +77,7 @@ const createDeliveryForOrder = async (req, res) => {
             return res.status(400).json({ message: 'Một xe hàng không thể để trống!' });
         }
 
-        const delivery = await supabase.from('delivery').insert({ orderid: order.id, deliverydate, deliverytime, gettime, getdate, note, deliverystatus: deliveryStatus.CHO_GAN_XE }).select();
+        const delivery = await supabase.from('delivery').insert({ orderid: order.id, deliverydate, getdate, note, deliverystatus: deliveryStatus.CHO_GAN_XE }).select();
 
         const deliveryid = delivery.data[0].id;
 
@@ -89,40 +96,30 @@ const createDeliveryForOrder = async (req, res) => {
 
         await supabase.from('deliverydetail').insert(standardList);
 
+        // Send notification to delivery about new delivery
+        const message = `Đơn hàng ${orderId} có đơn vận chuyển mới. Bạn cần thêm xe!`;
+
+        await supabase.from('notification').insert({
+            'message': message,
+            'roleid': `${role.DELIVERY_STAFF}`,
+            'url': `/ke-hoach-van-chuyen/${order.type === 'I' ? 'nhap' : 'xuat'}/${orderId}/${deliveryid}`
+        });
+
+        io.to(role.DELIVERY_STAFF).emit('delivery:new', {
+            message: message,
+            created_at: new Date()
+        });
+
         res.sendStatus(200);
     } catch (error) {
         res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
     }
 }
 
-// const updateDeliveryList = async (req, res) => {
-//     try {
-//         const { deliveryId } = req.params;
-//         const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
-
-//         const { drivername, drivercode, driverphonenumber, licenseplate } = req.body;
-//         if (!drivername || !drivercode || !driverphonenumber || !licenseplate) {
-//             return res.status(400).json({ message: 'Vui lòng điền đủ thông tin tài xế và xe!' });
-//         }
-//         await supabase.from('delivery').update(
-//             {
-//                 drivername,
-//                 drivercode,
-//                 driverphonenumber,
-//                 licenseplate,
-//                 deliverystatus: 'Chờ duyệt'
-//             }).eq('id', deliveryId);
-
-//         res.sendStatus(200);
-//     } catch (error) {
-//                 res.status(500).json({message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!'};
-//     }
-// }
-
 const addTruckForDelivery = async (req, res) => {
     try {
         const { deliveryId } = req.params;
-        const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
+        const delivery = (await supabase.from('delivery').select('*, order(type)').eq('id', deliveryId).single()).data;
 
         if (!delivery) {
             return res.status(404).json({
@@ -131,12 +128,18 @@ const addTruckForDelivery = async (req, res) => {
         }
         console.log(req.body);
 
-        const { drivername, drivercode, driverphonenumber, licenseplate, note } = req.body.driver;
+        const { drivername, drivercode, driverphonenumber, licenseplate, note, deliverytime, gettime } = req.body.driver;
         if (!drivername || !drivercode || !driverphonenumber || !licenseplate) {
             return res.status(400).json({ message: 'Vui lòng điền đủ thông tin tài xế và xe!' });
         }
+
+        if (!deliverytime || !gettime) {
+            return res.status(400).json({ message: 'Vui lòng điền đủ thông tin thời gian bốc và giao hàng!' });
+        }
         await supabase.from('delivery').update(
             {
+                gettime,
+                deliverytime,
                 drivername,
                 drivercode,
                 driverphonenumber,
@@ -144,6 +147,20 @@ const addTruckForDelivery = async (req, res) => {
                 deliverystatus: deliveryStatus.CHO_DUYET_XE,
                 note
             }).eq('id', deliveryId);
+
+        // Send notification to salesman to approve truck and driver
+        const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} cần được phê duyệt.`;
+
+        await supabase.from('notification').insert({
+            'message': message,
+            'roleid': `${role.SALESMAN}`,
+            'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
+        });
+
+        io.to(role.SALESMAN).emit('delivery:approve', {
+            message: message,
+            created_at: new Date()
+        });
 
         res.sendStatus(200);
     } catch (error) {
@@ -154,7 +171,7 @@ const addTruckForDelivery = async (req, res) => {
 const approveDelivery = async (req, res) => {
     try {
         const { deliveryId } = req.params;
-        const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
+        const delivery = (await supabase.from('delivery').select('*, order(type)').eq('id', deliveryId).single()).data;
 
         if (!delivery) {
             return res.sendStatus(404);
@@ -166,7 +183,23 @@ const approveDelivery = async (req, res) => {
 
         const { deliverystatus } = req.body;
 
-        await supabase.from('delivery').update({ 'deliverystatus': deliverystatus ? deliveryStatus.CHO : deliveryStatus.TU_CHOI_XE }).eq('id', deliveryId);
+        const deliveryStatusStore = deliverystatus ? deliveryStatus.CHO : deliveryStatus.TU_CHOI_XE;
+
+        await supabase.from('delivery').update({ 'deliverystatus': deliveryStatusStore }).eq('id', deliveryId);
+
+        // Send notification to delivery staff 
+        const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} ${deliverystatus ? 'đã được phê duyệt' : "đã bị từ chối."}.`;
+
+        await supabase.from('notification').insert({
+            'message': message,
+            'roleid': `${role.DELIVERY_STAFF}`,
+            'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
+        });
+
+        io.to(role.DELIVERY_STAFF).emit('delivery:approved', {
+            message: message,
+            created_at: new Date()
+        });
 
         res.sendStatus(200);
     } catch (error) {
@@ -176,7 +209,7 @@ const approveDelivery = async (req, res) => {
 const confirmNotEnoughCarDelivery = async (req, res) => {
     try {
         const { deliveryId } = req.params;
-        const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
+        const delivery = (await supabase.from('delivery').select('*, order(type)').eq('id', deliveryId).single()).data;
 
         if (!delivery) {
             return res.sendStatus(404);
@@ -188,6 +221,20 @@ const confirmNotEnoughCarDelivery = async (req, res) => {
 
         await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.HET_XE }).eq('id', deliveryId);
 
+        // Send notification to salesman 
+        const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} không thể đáp ứng do không đủ xe.`;
+
+        await supabase.from('notification').insert({
+            'message': message,
+            'roleid': `${role.SALESMAN}`,
+            'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
+        });
+
+        io.to(role.SALESMAN).emit('delivery:not_enough_car', {
+            message: message,
+            created_at: new Date()
+        });
+
         res.sendStatus(200);
     } catch (error) {
         res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
@@ -198,7 +245,7 @@ const confirmIsDeliverying = async (req, res) => {
         const { deliveryId } = req.params;
         const { act } = req.body;
 
-        const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
+        const delivery = (await supabase.from('delivery').select('*, order(type)').eq('id', deliveryId).single()).data;
 
         if (!delivery) {
             return res.sendStatus(404);
@@ -209,6 +256,20 @@ const confirmIsDeliverying = async (req, res) => {
         }
 
         const { error, data } = (await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.DANG_VAN_CHUYEN }).eq('id', deliveryId));
+
+        // Send notification to warehouse keeper 
+        const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} đang được ${act === 'nhap' ? 'chở về kho' : 'giao đến khách hàng'}.`;
+
+        await supabase.from('notification').insert({
+            'message': message,
+            'roleid': `${role.WAREHOUSE_KEEPER}`,
+            'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
+        });
+
+        io.to(role.WAREHOUSE_KEEPER).emit('delivery:shipping', {
+            message: message,
+            created_at: new Date()
+        });
 
         res.sendStatus(200);
     } catch (error) {
@@ -221,7 +282,7 @@ const confirmCompleteDeliverying = async (req, res) => {
         const { deliveryId } = req.params;
         const { act } = req.body;
 
-        const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
+        const delivery = (await supabase.from('delivery').select('*, order(type)').eq('id', deliveryId).single()).data;
 
         if (!delivery) {
             return res.sendStatus(404);
@@ -233,6 +294,37 @@ const confirmCompleteDeliverying = async (req, res) => {
 
         const { error, data } = (await supabase.from('delivery').update({ 'deliverystatus': deliveryStatus.XONG }).eq('id', deliveryId));
 
+        // update percent in order table
+        await supabase.rpc('update_percent_of_order', { 'order_id': delivery.orderid });
+
+        // Send notification to all role 
+        const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} đã hoàn thành.`;
+
+        // store notif into database
+        const notifs = [];
+        notifs.push(
+            {
+                'message': message,
+                'roleid': role.WAREHOUSE_KEEPER,
+                'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
+            },
+            {
+                'message': message,
+                'roleid': role.DELIVERY_STAFF,
+                'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
+            },
+            {
+                'message': message,
+                'roleid': role.SALESMAN,
+                'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
+            },
+        );
+        await supabase.from('notification').insert(notifs);
+
+        io.to([role.WAREHOUSE_KEEPER, role.DELIVERY_STAFF, role.SALESMAN]).emit('delivery:done', {
+            message: message,
+            created_at: new Date()
+        });
         res.sendStatus(200);
     } catch (error) {
         res.status(500).json({ message: 'Hệ thông xảy ra lỗi. Vui lòng thử lại sau!' });
@@ -242,7 +334,7 @@ const confirmCompleteDeliverying = async (req, res) => {
 const updateRealQuantityAndWeight = async (req, res) => {
     const { deliveryId } = req.params;
     try {
-        const delivery = (await supabase.from('delivery').select().eq('id', deliveryId).single()).data;
+        const delivery = (await supabase.from('delivery').select('*, order(type)').eq('id', deliveryId).single()).data;
         if (!delivery || Number(delivery.deliverystatus) < 3 || Number(delivery.deliverystatus) === 5) {
             return res.status(400).json({ message: 'Bạn không được update thông tin của đơn vận chuyển này!' });
         }
@@ -290,6 +382,54 @@ const updateRealQuantityAndWeight = async (req, res) => {
 
         await supabase.from('delivery').update({ "deliverystatus": act === 'nhap' ? deliveryStatus.XONG : deliveryStatus.DANG_VAN_CHUYEN }).eq("id", deliveryId);
 
+        if (act === 'nhap') {
+            // Send notification to all role 
+            const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} đã hoàn thành.`;
+
+            // store notif into database
+            const notifs = [];
+            notifs.push(
+                {
+                    'message': message,
+                    'roleid': role.WAREHOUSE_KEEPER,
+                    'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
+                },
+                {
+                    'message': message,
+                    'roleid': role.DELIVERY_STAFF,
+                    'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
+                },
+                {
+                    'message': message,
+                    'roleid': role.SALESMAN,
+                    'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
+                },
+            );
+            await supabase.from('notification').insert(notifs);
+
+            // update percent in order table
+            await supabase.rpc('update_percent_of_order', { 'order_id': delivery.orderid });
+
+            io.to([role.WAREHOUSE_KEEPER, role.DELIVERY_STAFF, role.SALESMAN]).emit('delivery:done', {
+                message: message,
+                created_at: new Date()
+            });
+        } else {
+            // Send notification to all warehouse keeper
+            const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} đang được ${act === 'nhap' ? 'chở về kho.' : 'giao đến khách hàng.'}.`;
+
+            await supabase.from('notification').insert({
+                'message': message,
+                'roleid': `${role.WAREHOUSE_KEEPER}`,
+                'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
+            });
+
+            io.to(role.WAREHOUSE_KEEPER).emit('delivery:shipping', {
+                message: message,
+                created_at: new Date()
+            });
+        }
+
         res.json({ message: `Cập nhật đơn vận chuyển ${deliveryId} thành công!` });
     } catch (error) {
         console.log(error);
@@ -323,7 +463,7 @@ const checkOrderComplete = async (req, res) => {
 const cancelDelivery = async (req, res) => {
     const { deliveryId } = req.params;
     try {
-        const delivery = (await supabase.from('delivery').select().eq("id", deliveryId).single()).data;
+        const delivery = (await supabase.from('delivery').select('*, order(type)').eq("id", deliveryId).single()).data;
 
         if (delivery.deliverystatus === deliveryStatus.XONG) {
             return res.status(400).json({ message: 'Đơn hàng này đã hoàn thành. Bạn không thể hủy.' });
@@ -333,6 +473,20 @@ const cancelDelivery = async (req, res) => {
         }
 
         await supabase.from('delivery').update({ "deliverystatus": deliveryStatus.HUY }).eq("id", deliveryId);
+
+        // Send notification to all role 
+        const message = `Đơn vận chuyển ${deliveryId} của đơn hàng ${delivery.orderid} đã bị hủy.`;
+
+        await supabase.from('notification').insert({
+            'message': message,
+            'roleid': `${role.DELIVERY_STAFF}`,
+            'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
+        });
+
+        io.to(role.DELIVERY_STAFF).emit('delivery:cancel', {
+            message: message,
+            created_at: new Date()
+        });
         res.sendStatus(200);
     } catch (error) {
         console.log(error);
@@ -359,7 +513,6 @@ const getDeliveryListForImportOrderList = async (req, res) => {
     }
     return res.send(orders);
 }
-
 
 module.exports = {
     getOneDelivery,
