@@ -9,6 +9,7 @@ const {
   totalFutureWeightofWH,
   total_weight_by_brandname,
   total_weight_by_partner,
+  total_weight_by_type,
 } = require("../../controllers/warehouseController");
 
 router
@@ -35,6 +36,13 @@ router
   .get(
     verifyRoles(role.WAREHOUSE_KEEPER, role.SALESMAN),
     total_weight_by_brandname
+  );
+
+  router
+  .route("/type")
+  .get(
+    verifyRoles(role.WAREHOUSE_KEEPER, role.SALESMAN),
+    total_weight_by_type
   );
 
 router

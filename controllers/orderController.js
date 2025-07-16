@@ -12,7 +12,7 @@ const getAllImportOrders = async(req, res) => {
   
   // updatedData = await updateOrderStatus(data);
   // res.json(updatedData);
-  res.json(data);
+  res.json(data);  
 }
 
 

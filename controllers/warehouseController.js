@@ -53,6 +53,16 @@ const total_weight_by_brandname = async (req, res) => {
   }
 };
 
+const total_weight_by_type = async (req, res) => {
+  try {
+    const type_weight = (await supabase.from("total_weight_by_type").select("")).data;
+    res.json(type_weight);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 const total_weight_by_partner = async (req, res) => {
   try {
     const brandname_weight = (await supabase.from("total_weight_by_partner").select("")).data;
@@ -62,4 +72,4 @@ const total_weight_by_partner = async (req, res) => {
   }
 };
 
-module.exports = { totalWeightofWH, totalFutureWeightofWH, sumImport, sumExport, total_weight_by_brandname, total_weight_by_partner };
+module.exports = { totalWeightofWH, totalFutureWeightofWH, sumImport, sumExport, total_weight_by_brandname, total_weight_by_type, total_weight_by_partner };
