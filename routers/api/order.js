@@ -4,6 +4,7 @@ const orderController = require('../../controllers/orderController');
 const { checkOrderComplete } = require('../../controllers/deliveryController');
 const verifyRoles = require('../../middlewares/roleMiddleware');
 const role = require('../../data/role')
+const product = require('../../controllers/productController')
 
 router.route('/')
     .post(verifyRoles(role.SALESMAN),orderController.createNewOrder)
@@ -16,11 +17,16 @@ router.route('/import')
 router.route('/export')
     .get(verifyRoles(role.SALESMAN,role.WAREHOUSE_KEEPER,role.DELIVERY_STAFF),orderController.getAllExportOrders)
 
+router.route("/product_general")
+    .get(verifyRoles(role.SALESMAN), product.getProductGeneralSteeltypeList);
+  
+
 router.route('/:id')
     .put(verifyRoles(role.SALESMAN),orderController.updateOrder)
     .get(verifyRoles(role.SALESMAN,role.WAREHOUSE_KEEPER,role.DELIVERY_STAFF),orderController.searchOrder)
 
 router.route('/delivery/:id')
     .get(verifyRoles(role.SALESMAN), orderController.getDeliveryDetailForOrder)
-    
+
+
 module.exports = router;
