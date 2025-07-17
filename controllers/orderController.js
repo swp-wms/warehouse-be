@@ -148,6 +148,8 @@ const isSubmittedOrderDetailExistsInDatabase = (dbOrderDetail, newOrderDetail) =
   );
 };
 
+
+
 const updateOrder = async(req,res) =>{
 
 
@@ -178,6 +180,7 @@ const updateOrder = async(req,res) =>{
           productid: detail.productid,
           numberofbars: detail.numberofbars,
           weight: detail.weight
+
         });
       } else if (!isSubmittedOrderDetailExistsInDatabase(dbOrderDetail, detail)) {
         inserts.push({
