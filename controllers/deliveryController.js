@@ -510,11 +510,7 @@ const getDeliveryListForExportOrderList = async (req, res) => {
     } else {
         orders = (await supabase.from('percentperorder').select().eq('type', 'E').eq('salesmanid', userid)).data;
     }
-    if (orders.length === 0) {
-        return res.json({
-            message: "Không có đơn xuất hàng nào."
-        });
-    }
+    
     return res.send(orders);
 }
 const getDeliveryListForImportOrderList = async (req, res) => {
@@ -528,11 +524,7 @@ const getDeliveryListForImportOrderList = async (req, res) => {
     } else {
         orders = (await supabase.from('percentperorder').select().eq('type', 'I').eq('salesmanid', userid)).data;
     }
-    if (orders.length === 0) {
-        return res.json({
-            message: "Không có đơn nhập hàng nào."
-        });
-    }
+    
     return res.send(orders);
 }
 
