@@ -64,6 +64,9 @@ app.use('/warehouse', require('./routers/api/warehouse'));
 // get notificaiton
 app.use('/notification', require('./routers/api/notification.js'));
 
+// get product catalog
+app.use('/product-catalog', require('./routers/api/productCatalog'));
+
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}...`);
 });
