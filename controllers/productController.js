@@ -114,5 +114,41 @@ const updateProductQuantityById = async (req, res) => {
     }
 };
 
+const getProductById = async (req,res) =>{
+    try {
+        const id = req.params.id;
+        console.log(id);
 
-module.exports = { getAllProduct, getOneProductById, createNewProduct, updateProductInformationById, updateProductQuantityById };
+        const product = await supabase.from('product').select('*').eq('id', id);
+        console.log(product);
+
+        if (!product || product.data.length === 0) {
+            res.status(404).json({ error: 'Product not found' });
+        }
+
+        res.status(200).json(product.data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
+
+const getProductGeneralSteeltypeList = async (req,res) => {
+    try{
+        const result = await supabase
+        .from('product_general_steeltype')
+        .select('*')
+
+        if(result.error){
+            console.error("Error: ", result.error)
+            res.status(500).json({error: error.message})
+        }
+
+        console.log(result.data);
+        res.status(200).json(result.data);
+    }catch(error){
+        console.error("Exception: ", error.message);
+        res.status(500).json({error: error.message})
+    }
+}
+module.exports = { getAllProduct, getOneProductById, createNewProduct, updateProductInformationById, updateProductQuantityById,getProductGeneralSteeltypeList };

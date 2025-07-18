@@ -1,9 +1,16 @@
 const supabase = require('../config/supabaseClient');
+const role = require('../data/role');
 
 const getAllNotification = async (req, res) => {
     const roleid = req.roleid;
     try {
-        let notifications = (await supabase.from('notification').select().eq('status', false).eq('roleid', roleid)).data;
+        let notifications;
+        if (roleid === role.SALESMAN) {
+            notifications = (await supabase.from('notification').select().eq('status', false).eq('roleid', roleid).eq('userid', req.id)).data;
+
+        } else {
+            notifications = (await supabase.from('notification').select().eq('status', false).eq('roleid', roleid)).data;
+        }
         res.send(notifications);
     } catch (error) {
         console.log(error);
@@ -16,7 +23,12 @@ const getSeenNotification = async (req, res) => {
     const roleid = req.roleid;
     const index = req.params.index;
     try {
-        let notifications = (await supabase.from('notification').select().eq('status', true).eq('roleid', roleid).order('created_at', { ascending: false }).range(index, index + 5)).data;
+        let notifications;
+        if (roleid === role.SALESMAN) {
+            notifications = (await supabase.from('notification').select().eq('status', true).eq('roleid', roleid).eq('userid', req.id).order('created_at', { ascending: false }).range(index, index + 5)).data;
+        } else {
+            notifications = (await supabase.from('notification').select().eq('status', true).eq('roleid', roleid).order('created_at', { ascending: false }).range(index, index + 5)).data;
+        }
         res.send(notifications);
     } catch (error) {
         console.log(error);

@@ -66,8 +66,8 @@ const createDeliveryForOrder = async (req, res) => {
 
         const { deliverydate, getdate, note, listDeliveryDetail } = req.body.newDelivery;
         // console.log(req.body.newDelivery.listDeliveryDetail);
-        
-        
+
+
         // if (deliverytime !== null || gettime !== null) {
         //     return res.status(400).json({ message: 'Thời gian vận chuyển và thời gian bốc hàng do vận chuyển nhập!' });
         // }
@@ -121,14 +121,13 @@ const createDeliveryForOrder = async (req, res) => {
 const addTruckForDelivery = async (req, res) => {
     try {
         const { deliveryId } = req.params;
-        const delivery = (await supabase.from('delivery').select('*, order(type)').eq('id', deliveryId).single()).data;
+        const delivery = (await supabase.from('delivery').select('*, order(type, salesmanid)').eq('id', deliveryId).single()).data;
 
         if (!delivery) {
             return res.status(404).json({
                 message: 'Không tìm thấy giao hàng!'
             })
         }
-        console.log(req.body);
 
         const { drivername, drivercode, driverphonenumber, licenseplate, note, deliverytime, gettime } = req.body.driver;
         if (!drivername || !drivercode || !driverphonenumber || !licenseplate) {
@@ -156,10 +155,11 @@ const addTruckForDelivery = async (req, res) => {
         await supabase.from('notification').insert({
             'message': message,
             'roleid': `${role.SALESMAN}`,
+            'userid': delivery.order.salesmanid,
             'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
         });
 
-        io.to(role.SALESMAN).emit('delivery:approve', {
+        io.to(delivery.order.salesmanid).emit('delivery:approve', {
             message: message,
             created_at: new Date()
         });
@@ -211,7 +211,7 @@ const approveDelivery = async (req, res) => {
 const confirmNotEnoughCarDelivery = async (req, res) => {
     try {
         const { deliveryId } = req.params;
-        const delivery = (await supabase.from('delivery').select('*, order(type)').eq('id', deliveryId).single()).data;
+        const delivery = (await supabase.from('delivery').select('*, order(type, salesmanid)').eq('id', deliveryId).single()).data;
 
         if (!delivery) {
             return res.sendStatus(404);
@@ -229,10 +229,11 @@ const confirmNotEnoughCarDelivery = async (req, res) => {
         await supabase.from('notification').insert({
             'message': message,
             'roleid': `${role.SALESMAN}`,
+            'userid': delivery.order.salesmanid,
             'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
         });
 
-        io.to(role.SALESMAN).emit('delivery:not_enough_car', {
+        io.to(delivery.order.salesmanid).emit('delivery:not_enough_car', {
             message: message,
             created_at: new Date()
         });
@@ -284,7 +285,7 @@ const confirmCompleteDeliverying = async (req, res) => {
         const { deliveryId } = req.params;
         const { act } = req.body;
 
-        const delivery = (await supabase.from('delivery').select('*, order(type)').eq('id', deliveryId).single()).data;
+        const delivery = (await supabase.from('delivery').select('*, order(type, salesmanid)').eq('id', deliveryId).single()).data;
 
         if (!delivery) {
             return res.sendStatus(404);
@@ -318,12 +319,13 @@ const confirmCompleteDeliverying = async (req, res) => {
             {
                 'message': message,
                 'roleid': role.SALESMAN,
+                'userid': delivery.order.salesmanid,
                 'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
             },
         );
         await supabase.from('notification').insert(notifs);
 
-        io.to([role.WAREHOUSE_KEEPER, role.DELIVERY_STAFF, role.SALESMAN]).emit('delivery:done', {
+        io.to([role.WAREHOUSE_KEEPER, role.DELIVERY_STAFF, delivery.order.salesmanid]).emit('delivery:done', {
             message: message,
             created_at: new Date()
         });
@@ -336,7 +338,7 @@ const confirmCompleteDeliverying = async (req, res) => {
 const updateRealQuantityAndWeight = async (req, res) => {
     const { deliveryId } = req.params;
     try {
-        const delivery = (await supabase.from('delivery').select('*, order(type)').eq('id', deliveryId).single()).data;
+        const delivery = (await supabase.from('delivery').select('*, order(type, salesmanid)').eq('id', deliveryId).single()).data;
         if (!delivery || Number(delivery.deliverystatus) < 3 || Number(delivery.deliverystatus) === 5) {
             return res.status(400).json({ message: 'Bạn không được update thông tin của đơn vận chuyển này!' });
         }
@@ -404,6 +406,7 @@ const updateRealQuantityAndWeight = async (req, res) => {
                 {
                     'message': message,
                     'roleid': role.SALESMAN,
+                    'userid': delivery.order.salesmanid,
                     'url': `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
                 },
             );
@@ -412,7 +415,7 @@ const updateRealQuantityAndWeight = async (req, res) => {
             // update percent in order table
             await supabase.rpc('update_percent_of_order', { 'order_id': delivery.orderid });
 
-            io.to([role.WAREHOUSE_KEEPER, role.DELIVERY_STAFF, role.SALESMAN]).emit('delivery:done', {
+            io.to([role.WAREHOUSE_KEEPER, role.DELIVERY_STAFF, delivery.order.salesmanid]).emit('delivery:done', {
                 message: message,
                 created_at: new Date()
             });
@@ -498,21 +501,30 @@ const cancelDelivery = async (req, res) => {
 }
 
 const getDeliveryListForExportOrderList = async (req, res) => {
-    const orders = (await supabase.from('percentperorder').select().eq('type', 'E')).data;
-    if (orders.length === 0) {
-        return res.json({
-            message: "Không có đơn xuất hàng nào."
-        });
+    const userid = req.id;
+    const roleid = req.roleid;
+
+    let orders;
+    if (roleid !== role.SALESMAN) {
+        orders = (await supabase.from('percentperorder').select().eq('type', 'E')).data;
+    } else {
+        orders = (await supabase.from('percentperorder').select().eq('type', 'E').eq('salesmanid', userid)).data;
     }
+    
     return res.send(orders);
 }
 const getDeliveryListForImportOrderList = async (req, res) => {
-    const orders = (await supabase.from('percentperorder').select().eq('type', 'I')).data;
-    if (orders.length === 0) {
-        return res.json({
-            message: "Không có đơn nhập hàng nào."
-        });
+    const userid = req.id;
+    const roleid = req.roleid;
+
+    let orders;
+
+    if (roleid !== role.SALESMAN) {
+        orders = (await supabase.from('percentperorder').select().eq('type', 'I')).data;
+    } else {
+        orders = (await supabase.from('percentperorder').select().eq('type', 'I').eq('salesmanid', userid)).data;
     }
+    
     return res.send(orders);
 }
 
