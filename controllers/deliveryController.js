@@ -109,7 +109,8 @@ const createDeliveryForOrder = async (req, res) => {
 
         io.to(role.DELIVERY_STAFF).emit('delivery:new', {
             message: message,
-            created_at: new Date()
+            created_at: new Date(),
+            url: `/ke-hoach-van-chuyen/${order.type === 'I' ? 'nhap' : 'xuat'}/${orderId}/${deliveryid}`
         });
 
         res.sendStatus(200);
@@ -161,7 +162,8 @@ const addTruckForDelivery = async (req, res) => {
 
         io.to(delivery.order.salesmanid).emit('delivery:approve', {
             message: message,
-            created_at: new Date()
+            created_at: new Date(), 
+            url: `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
         });
 
         res.sendStatus(200);
@@ -200,7 +202,8 @@ const approveDelivery = async (req, res) => {
 
         io.to(role.DELIVERY_STAFF).emit('delivery:approved', {
             message: message,
-            created_at: new Date()
+            created_at: new Date(),
+            url: `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
         });
 
         res.sendStatus(200);
@@ -235,7 +238,8 @@ const confirmNotEnoughCarDelivery = async (req, res) => {
 
         io.to(delivery.order.salesmanid).emit('delivery:not_enough_car', {
             message: message,
-            created_at: new Date()
+            created_at: new Date(),
+            url: `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
         });
 
         res.sendStatus(200);
@@ -271,7 +275,8 @@ const confirmIsDeliverying = async (req, res) => {
 
         io.to(role.WAREHOUSE_KEEPER).emit('delivery:shipping', {
             message: message,
-            created_at: new Date()
+            created_at: new Date(),
+            url: `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
         });
 
         res.sendStatus(200);
@@ -327,7 +332,8 @@ const confirmCompleteDeliverying = async (req, res) => {
 
         io.to([role.WAREHOUSE_KEEPER, role.DELIVERY_STAFF, delivery.order.salesmanid]).emit('delivery:done', {
             message: message,
-            created_at: new Date()
+            created_at: new Date(),
+            url: `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
         });
         res.sendStatus(200);
     } catch (error) {
@@ -417,7 +423,8 @@ const updateRealQuantityAndWeight = async (req, res) => {
 
             io.to([role.WAREHOUSE_KEEPER, role.DELIVERY_STAFF, delivery.order.salesmanid]).emit('delivery:done', {
                 message: message,
-                created_at: new Date()
+                created_at: new Date(),
+                url: `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
             });
         } else {
             // Send notification to all warehouse keeper
@@ -431,7 +438,8 @@ const updateRealQuantityAndWeight = async (req, res) => {
 
             io.to(role.WAREHOUSE_KEEPER).emit('delivery:shipping', {
                 message: message,
-                created_at: new Date()
+                created_at: new Date(),
+                url: `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
             });
         }
 
@@ -490,7 +498,8 @@ const cancelDelivery = async (req, res) => {
 
         io.to(role.DELIVERY_STAFF).emit('delivery:cancel', {
             message: message,
-            created_at: new Date()
+            created_at: new Date(),
+            url: `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
         });
         res.sendStatus(200);
     } catch (error) {
@@ -510,7 +519,7 @@ const getDeliveryListForExportOrderList = async (req, res) => {
     } else {
         orders = (await supabase.from('percentperorder').select().eq('type', 'E').eq('salesmanid', userid)).data;
     }
-    
+
     return res.send(orders);
 }
 const getDeliveryListForImportOrderList = async (req, res) => {
@@ -524,7 +533,7 @@ const getDeliveryListForImportOrderList = async (req, res) => {
     } else {
         orders = (await supabase.from('percentperorder').select().eq('type', 'I').eq('salesmanid', userid)).data;
     }
-    
+
     return res.send(orders);
 }
 
