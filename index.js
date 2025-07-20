@@ -64,6 +64,9 @@ app.use('/warehouse', require('./routers/api/warehouse'));
 // get notificaiton
 app.use('/notification', require('./routers/api/notification.js'));
 
+// Ensure the report router exists and is exported correctly
+app.use('/report', require('./routers/api/report'));
+
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}...`);
 });
