@@ -25,6 +25,12 @@ const login = async (req, res) => {
             });
         }
 
+        if(match.status == 0) {
+             return res.status(401).json({
+                message: "Người dùng đã deactive không được phép đăng nhập!"
+            });
+        }
+
         const checkPass = await bcrypt.compare(password, match.password);
         if (!checkPass) {
             return res.status(401).json({

@@ -18,12 +18,13 @@ const initSocket = (server) => {
     });
 
     io.use((socket, next) => {
-        socket.roomid = socket.handshake.auth.roleid;
+        socket.userid = socket.handshake.auth.userid;
+        socket.roomid = socket.handshake.auth.roleid == 3 ? socket.handshake.auth.userid : socket.handshake.auth.roleid;
         next();
     })
 
     io.on('connection', (socket) => {
-        console.log("A user connected: " + socket.id);
+        console.log("A user connected: " + socket.userid);
         console.log("roomid: ", socket.roomid);
 
         socket.join(socket.roomid);
