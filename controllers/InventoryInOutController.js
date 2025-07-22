@@ -24,10 +24,12 @@ const getProductChange = async (startDate, endDate, req, res) => {
     let product_change_query= supabase.from("product_change").select("*")
 
     if(startDate){
-        product_change_query.gte('getdate', startDate);
+        const startDateTime = new Date(startDate).toISOString();
+        product_change_query.gte('update_time', startDateTime);
     }
     if(endDate){
-        product_change_query.lte('getdate', endDate);
+         const endDateTime = new Date(endDate + ' 23:59:59').toISOString();
+        product_change_query.lte('update_time', endDateTime);
     }
     product_change = await product_change_query;
     if(product_change.error) {
@@ -74,7 +76,7 @@ const caculateOpStock = (product,startDate,endDate, deliveryData, supplementData
             productChangeAfterEndDate = endDate == undefined? []: product_change_data.filter(p => product.id == p.productid && p.update_time.split("T")[0] >= endDate && p.update_time.split("T")[0] <= today);
         }
         if(deliveryData){
-             deliveryAfterEndDate = endDate == undefined? []: deliveryData.filter(d => product.id == d.productid && c && d.deliverydate >= endDate && d.deliverydate <= today);
+             deliveryAfterEndDate = endDate == undefined? []: deliveryData.filter(d => product.id == d.productid  && d.deliverydate >= endDate && d.deliverydate <= today);
         }
         // console.log("deliveryAfterEndDate", deliveryAfterEndDate);
         if(supplementData){
