@@ -20,11 +20,24 @@ const IOReportItemForm = {
 
 }
 
-const getProductChange = async (req, res) => {
-    produ
+const getProductChange = async (startDate, endDate, req, res) => {
+    let product_change_query= supabase.from("product_change").select("*")
+
+    if(startDate){
+        product_change_query.gte('getdate', startDate);
+    }
+    if(endDate){
+        product_change_query.lte('getdate', endDate);
+    }
+    product_change = await product_change_query;
+    if(product_change.error) {
+        console.error("Error fetching product change data:", product_change.error);
+    }
+
+    return product_change.data;
 }
 
-const caculateOpStock = (product,startDate,endDate, deliveryData, supplementData) => {
+const caculateOpStock = (product,startDate,endDate, deliveryData, supplementData,product_change_data) => {
      const today = new Date().toISOString().split('T')[0]; //  today's date in YYYY-MM-DD format
     product.OpStockUnit1 = product.totalbar;        //get current stock quantity for both Op/EdStockUnit
     product.OpStockUnit2 = product.totalweight;     //to calculate 'em later
@@ -34,6 +47,12 @@ const caculateOpStock = (product,startDate,endDate, deliveryData, supplementData
 
     let deliveryRecordByProduct = [];
     let supplementRecordByProduct = [];
+    let productChangeByProduct = [];
+
+    if(product_change_data){
+        productChangeByProduct = startDate == undefined? product_change_data.filter(p => product.id == p.productid) : product_change_data.filter(p => product.id == p.productid && p.update_time.split("T")[0] >= startDate && p.update_time.split("T")[0] <= today);
+    }
+
     //filter delivery and supplement data by product and date range
     if(deliveryData){
         deliveryRecordByProduct = startDate == undefined ? deliveryData.filter(d => product.id == d.productid && product.partnerid == d.partnerid) : deliveryData.filter(d => product.id == d.productid && product.partnerid == d.partnerid && d.deliverydate >= startDate && d.deliverydate <= today);
@@ -49,6 +68,11 @@ const caculateOpStock = (product,startDate,endDate, deliveryData, supplementData
     if (endDate && endDate < today) {
         let deliveryAfterEndDate = [];
         let supplementAfterEndDate = [];
+        let productChangeAfterEndDate = [];
+
+        if(product_change_data){
+            productChangeAfterEndDate = endDate == undefined? []: product_change_data.filter(p => product.id == p.productid && p.update_time.split("T")[0] >= endDate && p.update_time.split("T")[0] <= today);
+        }
         if(deliveryData){
              deliveryAfterEndDate = endDate == undefined? []: deliveryData.filter(d => product.id == d.productid && c && d.deliverydate >= endDate && d.deliverydate <= today);
         }
@@ -57,6 +81,10 @@ const caculateOpStock = (product,startDate,endDate, deliveryData, supplementData
              supplementAfterEndDate = endDate == undefined? []: supplementData.filter(s => product.id == s.productid && product.partnerid == s.partnerid && s.createdate >= endDate && s.createdate <= today);
         }
         // console.log("supplementAfterEndDate", supplementAfterEndDate);
+        productChangeAfterEndDate.forEach(p => {
+                product.EdStockUnit1 -= (p.new_bars-p.old_bars);
+                product.EdStockUnit2 -= (p.new_weight-p.old_weight);
+        });
 
         deliveryAfterEndDate.forEach(d => {
             if(d.type === "I"){
@@ -81,6 +109,11 @@ const caculateOpStock = (product,startDate,endDate, deliveryData, supplementData
         });
 
     }
+        productChangeByProduct.forEach(p => {
+            product.OpStockUnit1 += (p.new_bars-p.old_bars);
+            product.OpStockUnit2 += (p.new_weight-p.old_weight);
+        });
+
        //caculate Opstock Unit
         deliveryRecordByProduct.forEach(d =>{
             if(d.type === "I"){
@@ -114,7 +147,7 @@ const caculateOpStock = (product,startDate,endDate, deliveryData, supplementData
 
 }
 
-const caculateQuantityInOut = (product, startDate, endDate, deliveryData, supplementData) => {
+const caculateQuantityInOut = (product, startDate, endDate, deliveryData, supplementData, product_change_data) => {
     const today = new Date().toISOString().split('T')[0]; // Gets today's date in YYYY-MM-DD format
     product.QantityInUnit1 = 0;
     product.QantityOutUnit1 = 0;
@@ -123,7 +156,10 @@ const caculateQuantityInOut = (product, startDate, endDate, deliveryData, supple
 
     // startDate == undefined ? startDate = today : startDate;
     // endDate == undefined ? endDate = today : endDate;
-
+    let productChangeForCountingQuantity = [];
+    if(product_change_data){
+        productChangeForCountingQuantity = startDate == undefined? product_change_data.filter(p => product.id == p.productid) : product_change_data.filter(p => product.id == p.productid && p.update_time.split("T")[0] >= startDate && p.update_time.split("T")[0] <= endDate);
+    }
     
     //filter delivery and supplement data by product and date range
     let deliveryRecordedForCountingQuantity = [];
@@ -139,6 +175,11 @@ const caculateQuantityInOut = (product, startDate, endDate, deliveryData, supple
             : supplementData.filter(s => product.id == s.productid && s.partnerid == product.partnerid && s.createdate >= startDate && s.createdate <= endDate);
     }
     // console.log("supplementRecordedForCountingQuantity", supplementRecordedForCountingQuantity);
+
+    productChangeForCountingQuantity.forEach(p => {
+        product.QantityInUnit1 += (p.new_bars-p.old_bars);
+        product.QantityInUnit2 += (p.new_weight-p.old_weight);
+    });
 
     deliveryRecordedForCountingQuantity.forEach(d =>{
         if(d.type === "I"){
@@ -200,7 +241,7 @@ const Overall = async (req, res) => {
     const supplementQuery = supabase
     .from("supplement_list_for_io_report")
     .select("*");
-
+    
     
     if(startDate){
         supplementQuery.gte('getdate',startDate);
@@ -212,6 +253,7 @@ const Overall = async (req, res) => {
 
     const {data:supplementData, error:supplementError} = await supplementQuery;
 
+    const product_change_data = await getProductChange(startDate, endDate, req, res);
 
     const joinSimilarProducts = (productList) =>{
         const grouped = productList.reduce((acc,item) => {
@@ -252,8 +294,8 @@ const Overall = async (req, res) => {
     let rawReport = [];
     inventoryData.forEach(product => {
         let item = JSON.parse(JSON.stringify(IOReportItemForm));
-        const quantityInOut = caculateQuantityInOut(product, startDate, endDate, deliveryData, supplementData);
-        const caculatedStock = caculateOpStock(product, startDate, endDate, deliveryData, supplementData);
+        const quantityInOut = caculateQuantityInOut(product, startDate, endDate, deliveryData, supplementData, product_change_data);
+        const caculatedStock = caculateOpStock(product, startDate, endDate, deliveryData, supplementData, product_change_data);
         item.id = rawReport.length <= 0 ? 1 : rawReport[rawReport.length - 1].id + 1;
         item.partnerid = product.partnerid;
         item.name = product.name;

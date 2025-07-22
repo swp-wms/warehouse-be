@@ -41,7 +41,8 @@ const putCatalog = async (req, res) => {
     .from("catalog")
     .select()
     .filter("brandname", "eq", brandname)
-    .filter("steeltype", "eq", steeltype);
+    .filter("steeltype", "eq", steeltype)
+    .filter("type", "eq", type);
     
 };
 
@@ -85,13 +86,13 @@ const updateCatalog = async (req,res) => {
     const result = await supabase
       .from('catalog')
       .upsert(catalogUpdates, { 
-        onConflict: ['brandname', 'steeltype'] // Composite key
+        onConflict: ['brandname', 'steeltype','type'] // Composite key
       })
       .select();
     
     if (result.error) {
-      console.error('Upsert error:', error);
-      return res.status(500).json({ error: error.message });
+      console.error('Upsert error:', result.error);
+      return res.status(500).json({ error: result.error.message });
     }
     
     res.status(200).json(result);
