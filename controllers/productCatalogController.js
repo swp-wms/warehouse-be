@@ -26,7 +26,7 @@ const addProduct = async (req, res) => {
           }
       ).select('*');
       console.log(product);
-      res.status(200).json("Created: " + product.data);
+      res.status(200).json(product.data);
   } catch (error) {
       res.status(500).json({ error: error.message });
   }
@@ -63,4 +63,15 @@ const updateProductInformationById = async (req, res) => {
   }
 };
 
-module.exports = { getProductList, addProduct, updateProductInformationById };
+const viewProductHistory = async (req, res) => {
+  try {
+    const id = Number(req.params.productid);
+    const product = (await supabase.from('product_change').select().eq('productid', id));
+    console.log(product);
+    res.status(200).json(product);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports = { getProductList, addProduct, updateProductInformationById, viewProductHistory };
