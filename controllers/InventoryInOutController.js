@@ -282,10 +282,10 @@ const Overall = async (req, res) => {
                     QantityInUnit1: item.QantityInUnit1,
                     QantityOutUnit1: item.QantityOutUnit1,
                     EdStockUnit1: item.EdStockUnit1,
-                    OpStockUnit2: item.OpStockUnit2.toFixed(1),
-                    QantityInUnit2: item.QantityInUnit2.toFixed(1),
-                    QantityOutUnit2: item.QantityOutUnit2.toFixed(1),
-                    EdStockUnit2: item.EdStockUnit2.toFixed(1)
+                    OpStockUnit2: item.OpStockUnit2?.toFixed(1),
+                    QantityInUnit2: item.QantityInUnit2?.toFixed(1),
+                    QantityOutUnit2: item.QantityOutUnit2?.toFixed(1),
+                    EdStockUnit2: item.EdStockUnit2?.toFixed(1)
                 })
             }
             return acc;
