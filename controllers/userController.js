@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 
 const getAllUser = async (req, res) => {
     try {
-        const users = (await supabase.from('user').select('username, roleid, fullname, role(rolename)')).data;
+        const users = (await supabase.from('user').select('username, roleid, fullname, role(rolename),id')).data;
 
         return res.send(users);
     } catch (error) {

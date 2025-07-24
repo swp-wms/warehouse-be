@@ -6,7 +6,6 @@ const {
     getUserForAdmin,
     updateUser,
     getAllUserForAdmin,
-    createNewUser
 } = require('../../controllers/userController');
 
 const verifyRoles = require('../../middlewares/roleMiddleware');
@@ -16,8 +15,11 @@ router.route('/')
     // .get(verifyRoles(role.SYSTEM_ADMIN), getAllUser)
     .get(verifyRoles(role.SYSTEM_ADMIN), getAllUserForAdmin)
     // .post(verifyRoles(role.SYSTEM_ADMIN), createNewUser);
+    .get(getAllUser)
 
 router.route('/me').get(getUser);
+
+router.route('/info').get(getAllUser);
 
 router.route('/:id')
     .get(verifyRoles(role.SYSTEM_ADMIN), getUserForAdmin)
