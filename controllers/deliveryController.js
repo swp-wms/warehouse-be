@@ -162,7 +162,7 @@ const addTruckForDelivery = async (req, res) => {
 
         io.to(delivery.order.salesmanid).emit('delivery:approve', {
             message: message,
-            created_at: new Date(), 
+            created_at: new Date(),
             url: `/ke-hoach-van-chuyen/${delivery.order.type === 'I' ? 'nhap' : 'xuat'}/${delivery.orderid}/${deliveryId}`
         });
 
@@ -258,6 +258,10 @@ const confirmIsDeliverying = async (req, res) => {
             return res.sendStatus(404);
         }
 
+        if (new Date() < new Date(delivery.getdate)) {
+            return res.status(400).json({ message: 'Chưa đến ngày bốc hàng. Bạn không thể chuyển trạng thái bây giờ.' });
+        }
+
         if (act !== 'nhap' || delivery.deliverystatus !== deliveryStatus.CHO) {
             return res.status(400).json({ message: 'Bạn không được quyền thay đổi trạng thái giao hàng!' });
         }
@@ -294,6 +298,12 @@ const confirmCompleteDeliverying = async (req, res) => {
 
         if (!delivery) {
             return res.sendStatus(404);
+        }
+
+        if (new Date() < new Date(delivery.deliverydate)) {
+            console.log('hia');
+            
+            return res.status(400).json({ message: 'Chưa đến ngày giao hàng. Bạn không thể chuyển trạng thái bây giờ.' });
         }
 
         if (act !== 'xuat' || delivery.deliverystatus !== deliveryStatus.DANG_VAN_CHUYEN) {
@@ -355,8 +365,17 @@ const updateRealQuantityAndWeight = async (req, res) => {
         if (act === 'nhap' && delivery.deliverystatus !== deliveryStatus.DANG_VAN_CHUYEN) {
             return res.status(400).json({ message: 'Bạn chưa được update thông tin của đơn vận chuyển này!' });
         }
+
+        if (act === 'nhap' && new Date() < new Date(delivery.deliverydate)) {
+            return res.status(400).json({ message: 'Chưa đến ngày giao hàng. Bạn chưa được update thông tin của đơn vận chuyển bây giờ.' });
+        }
+
         if (act === 'xuat' && delivery.deliverystatus !== deliveryStatus.CHO) {
             return res.status(400).json({ message: 'Bạn chưa được update thông tin của đơn vận chuyển này!' });
+        }
+
+        if (act === 'xuat' && new Date() < new Date(delivery.getdate)) {
+            return res.status(400).json({ message: 'Chưa đến ngày bốc hàng. Bạn chưa được update thông tin của đơn vận chuyển bây giờ.' });
         }
 
         for (let index = 0; index < deliveryDetail.length; index++) {
@@ -515,9 +534,9 @@ const getDeliveryListForExportOrderList = async (req, res) => {
 
     let orders;
     if (roleid !== role.SALESMAN) {
-        orders = (await supabase.from('percentperorder').select().eq('type', 'E')).data;
+        orders = (await supabase.from('percentperorder').select().eq('type', 'E').neq('status', 'XONG')).data;
     } else {
-        orders = (await supabase.from('percentperorder').select().eq('type', 'E').eq('salesmanid', userid)).data;
+        orders = (await supabase.from('percentperorder').select().eq('type', 'E').eq('salesmanid', userid).neq('status', 'XONG')).data;
     }
 
     return res.send(orders);
@@ -529,12 +548,20 @@ const getDeliveryListForImportOrderList = async (req, res) => {
     let orders;
 
     if (roleid !== role.SALESMAN) {
-        orders = (await supabase.from('percentperorder').select().eq('type', 'I')).data;
+        orders = (await supabase.from('percentperorder').select().eq('type', 'I').neq('status', 'XONG')).data;
     } else {
-        orders = (await supabase.from('percentperorder').select().eq('type', 'I').eq('salesmanid', userid)).data;
+        orders = (await supabase.from('percentperorder').select().eq('type', 'I').eq('salesmanid', userid).neq('status', 'XONG')).data;
     }
 
     return res.send(orders);
+}
+
+const getAllDelivery = async (req, res) => {
+    const { data, error } = await supabase.from('delivery').select('*, order(type, id,partnerid)');
+    if (error) {
+        return res.status(500).json({ error: error.message });
+    }
+    res.json(data);
 }
 
 module.exports = {
@@ -550,5 +577,6 @@ module.exports = {
     getDeliveryListForExportOrderList,
     checkOrderComplete,
     cancelDelivery,
-    confirmCompleteDeliverying
+    confirmCompleteDeliverying,
+    getAllDelivery
 }

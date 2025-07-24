@@ -6,6 +6,7 @@ const {
   getProductList,
   updateProductInformationById,
   addProduct,
+  viewProductHistory,
 } = require("../../controllers/productCatalogController");
 
 router
@@ -22,5 +23,9 @@ router
     verifyRoles(role.SALESMAN, role.WAREHOUSE_KEEPER),
     updateProductInformationById
   );
+
+router
+  .route("/:productid")
+  .get(verifyRoles(role.SALESMAN, role.WAREHOUSE_KEEPER), viewProductHistory);
 
 module.exports = router;

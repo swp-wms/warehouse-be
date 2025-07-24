@@ -22,12 +22,14 @@ const getAllNotification = async (req, res) => {
 const getSeenNotification = async (req, res) => {
     const roleid = req.roleid;
     const index = req.params.index;
+    console.log('run');
+    
     try {
         let notifications;
         if (roleid === role.SALESMAN) {
-            notifications = (await supabase.from('notification').select().eq('status', true).eq('roleid', roleid).eq('userid', req.id).order('created_at', { ascending: false }).range(0, index + 4)).data;
+            notifications = (await supabase.from('notification').select().eq('status', true).eq('roleid', roleid).eq('userid', req.id).order('created_at', { ascending: false }).limit(Number(index) + 5)).data;
         } else {
-            notifications = (await supabase.from('notification').select().eq('status', true).eq('roleid', roleid).order('created_at', { ascending: false }).range(0, index + 4)).data;
+            notifications = (await supabase.from('notification').select().eq('status', true).eq('roleid', roleid).order('created_at', { ascending: false }).limit(Number(index) + 5)).data;
         }
         res.send(notifications);
     } catch (error) {
