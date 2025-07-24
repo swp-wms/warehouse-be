@@ -122,7 +122,7 @@ const updateUser = async (req, res) => {
 
 const getAllUserForAdmin = async (req, res) => {
     try {
-        const users = (await supabase.from('user').select('id, username, fullname, role(rolename), status')).data;
+        const users = (await supabase.from('user').select('id, username, fullname, role(rolename), status, image')).data;
 
         return res.send(users);
     } catch (error) {
