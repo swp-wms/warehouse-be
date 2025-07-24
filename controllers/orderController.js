@@ -1,5 +1,26 @@
 const supabase = require('../config/supabaseClient');
 
+const fetchImportOrderWeight = async (req, res) => {
+  const { data, error } = await supabase
+    .from('orderweight')
+    .select('*')
+    .eq('type', 'I')
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+  res.json(data);
+};
+
+const fetchExportOrderWeight = async (req, res) => {
+  const { data, error } = await supabase
+    .from('orderweight')
+    .select('*')
+    .eq('type', 'E')
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+  res.json(data);
+};
 
 const getAllImportOrders = async(req, res) => {
   const { data, error } = await supabase
@@ -409,5 +430,7 @@ module.exports ={
     searchOrder,
     updateOrder,
     getOrderDetail,
-    getDeliveryDetailForOrder
+    getDeliveryDetailForOrder,
+    fetchExportOrderWeight,
+    fetchImportOrderWeight
 }
