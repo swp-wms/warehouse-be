@@ -75,7 +75,7 @@ const updateUser = async (req, res) => {
             if (status !== undefined) updateData.status = status
             if (roleid !== undefined) updateData.roleid = roleid
 
-            if (password !== undefined && password !== "") {
+            if (password !== undefined && password !== "" && password !== null) {
                 const saltRounds = 10
                 const hashedPassword = await bcrypt.hash(password, saltRounds)
                 updateData.password = hashedPassword
@@ -100,7 +100,7 @@ const updateUser = async (req, res) => {
             if (gender !== undefined) updateData.gender = gender
             if (status !== undefined) updateData.status = status
 
-            if (password !== undefined && password !== "") {
+            if (password !== undefined && password !== "" && password !== null) {
                 const saltRounds = 10
                 const hashedPassword = await bcrypt.hash(password, saltRounds)
                 updateData.password = hashedPassword

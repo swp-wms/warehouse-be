@@ -38,6 +38,8 @@ const createSupplements = async (req, res) => {
     .insert(newSupplement)
     .select();
     
+    console.log(supplementResult);
+    
     const supplementId = supplementResult.data[0].id;
 
     /*************************
@@ -110,11 +112,11 @@ const createSupplements = async (req, res) => {
           detail.forEach(e => {
             if (element.id === e.productid) {
               if (type === "I") {
-          element.totalbar += e.numberofbars;
-          element.totalweight += e.weight;
+          element.totalbar = Number(element.totalbar) + Number(e.numberofbars);
+          element.totalweight = Number(element.totalweight) + Number(e.weight);
               } else if (type === "E") {
-          element.totalbar -= e.numberofbars;
-          element.totalweight -= e.weight;
+          element.totalbar = Number(element.totalbar) - Number(e.numberofbars);
+          element.totalweight = Number(element.totalweight) - Number(e.weight);
               }
             }
           });
