@@ -39,106 +39,44 @@ const getProductChange = async (startDate, endDate, req, res) => {
     return product_change.data;
 }
 
-const caculateOpStock = (product,startDate,endDate, deliveryData, supplementData,product_change_data) => {
-     const today = new Date().toISOString().split('T')[0]; //  today's date in YYYY-MM-DD format
-    product.OpStockUnit1 = product.totalbar;        //get current stock quantity for both Op/EdStockUnit
-    product.OpStockUnit2 = product.totalweight;     //to calculate 'em later
-
-    product.EdStockUnit1 = product.totalbar
-    product.EdStockUnit2 = product.totalweight;
-
-    let deliveryRecordByProduct = [];
-    let supplementRecordByProduct = [];
-    let productChangeByProduct = [];
-
-    if(product_change_data){
-        productChangeByProduct = startDate == undefined? product_change_data.filter(p => product.id == p.productid) : product_change_data.filter(p => product.id == p.productid && p.update_time.split("T")[0] >= startDate && p.update_time.split("T")[0] <= today);
-    }
-
-    //filter delivery and supplement data by product and date range
-    if(deliveryData){
-        deliveryRecordByProduct = startDate == undefined ? deliveryData.filter(d => product.id == d.productid && product.partnerid == d.partnerid) : deliveryData.filter(d => product.id == d.productid && product.partnerid == d.partnerid && d.deliverydate >= startDate && d.deliverydate <= today);
-    }
-    // console.log("deliveryRecordByProduct", deliveryRecordByProduct);
-    if(supplementData){
-    supplementRecordByProduct = startDate == undefined? supplementData.filter(s => product.id == s.productid && product.partnerid == s.partnerid) : supplementData.filter(s => product.id == s.productid && product.partnerid == s.partnerid && s.createdate >= startDate && s.createdate <= today);
-    }
-    // console.log("supplementRecordByProduct", supplementRecordByProduct);
-
-    //if endDate is today then, the Tồn cuối will be the current stock
+const caculateOpStock = (product,inventoryData,startDate,endDate,startDateData,endDateData) => {
+    const today = new Date().toISOString().split('T')[0]; // Gets today's date in YYYY-MM-DD format
     
-    if (endDate && endDate < today) {
-        let deliveryAfterEndDate = [];
-        let supplementAfterEndDate = [];
-        let productChangeAfterEndDate = [];
+    
+    const dataOnStartDate= startDateData.find(d => d.productid == product.id);
+    console.log("Start date data:", dataOnStartDate);
+    product.OpStockUnit1 = dataOnStartDate?.totalbar || 0
 
-        if(product_change_data){
-            productChangeAfterEndDate = endDate == undefined? []: product_change_data.filter(p => product.id == p.productid && p.update_time.split("T")[0] >= endDate && p.update_time.split("T")[0] <= today);
-        }
-        if(deliveryData){
-             deliveryAfterEndDate = endDate == undefined? []: deliveryData.filter(d => product.id == d.productid  && d.deliverydate >= endDate && d.deliverydate <= today);
-        }
-        // console.log("deliveryAfterEndDate", deliveryAfterEndDate);
-        if(supplementData){
-             supplementAfterEndDate = endDate == undefined? []: supplementData.filter(s => product.id == s.productid && product.partnerid == s.partnerid && s.createdate >= endDate && s.createdate <= today);
-        }
-        // console.log("supplementAfterEndDate", supplementAfterEndDate);
-        productChangeAfterEndDate.forEach(p => {
-                product.EdStockUnit1 -= (p.new_bars-p.old_bars);
-                product.EdStockUnit2 -= (p.new_weight-p.old_weight);
-        });
-
-        deliveryAfterEndDate.forEach(d => {
-            if(d.type === "I"){
-                product.EdStockUnit1 -= d.realnumberofbars;
-                product.EdStockUnit2 -= d.realtotalweight;
-            }
-            if(d.type === "E"){
-                product.EdStockUnit1 += d.realnumberofbars;
-                product.EdStockUnit2 += d.realtotalweight;
-            }
-        });
-
-        supplementAfterEndDate.forEach(s => {
-            if(s.type === "I"){
-                product.EdStockUnit1 -= s.numberofbars;
-                product.EdStockUnit2 -= s.weight;
-            }
-            if(s.type === "E"){
-                product.EdStockUnit1 += s.numberofbars;
-                product.EdStockUnit2 += s.weight;
-            }
-        });
-
+    product.OpStockUnit2 = dataOnStartDate?.totalweight || 0;
+    
+    
+    if(endDate === today){
+        const dataOnEndDate = inventoryData.find(d => d.id == product.id)
+        product.EdStockUnit1 = dataOnEndDate?.totalbar || 0;
+        product.EdStockUnit2 = dataOnEndDate?.totalweight || 0;
     }
-        productChangeByProduct.forEach(p => {
-            product.OpStockUnit1 += (p.new_bars-p.old_bars);
-            product.OpStockUnit2 += (p.new_weight-p.old_weight);
-        });
+    else{
+       
 
-       //caculate Opstock Unit
-        deliveryRecordByProduct.forEach(d =>{
-            if(d.type === "I"){
-                product.OpStockUnit1 -= d.realnumberofbars;
-                product.OpStockUnit2 -= d.realtotalweight;
-            }
-            if(d.type === "E"){
-                product.OpStockUnit1 += d.realnumberofbars;
-                product.OpStockUnit2 += d.realtotalweight;
-            }
-        })
+        const dataOnEndDate = endDateData.filter(d => d.productid == product.id);
+        console.log("End date data:", dataOnEndDate);
+        product.EdStockUnit1 = dataOnEndDate?.totalbar || 0;
+        product.EdStockUnit2 = dataOnEndDate?.totalweight || 0;
+    }
 
-        supplementRecordByProduct.forEach(s =>{
-            if(s.type === "I"){
-                product.OpStockUnit1 -= s.numberofbars;
-                product.OpStockUnit2 -= s.weight;
-            }
-            if(s.type === "E"){
-                product.OpStockUnit1 += s.numberofbars;
-                product.OpStockUnit2 += s.weight;
-            }
-        })
-        
+
+
+
+
+
+
+
+
+       
+
+    
+
+  
     
         return {
             OpStockUnit1: product.OpStockUnit1,
@@ -179,8 +117,20 @@ const caculateQuantityInOut = (product, startDate, endDate, deliveryData, supple
     // console.log("supplementRecordedForCountingQuantity", supplementRecordedForCountingQuantity);
 
     productChangeForCountingQuantity.forEach(p => {
-        product.QantityInUnit1 += (p.new_bars-p.old_bars);
-        product.QantityInUnit2 += (p.new_weight-p.old_weight);
+        if(p.new_bars-p.old_bars > 0){
+            product.QantityInUnit1 += (p.new_bars-p.old_bars);
+        }
+        else{
+            product.QantityOutUnit1 += (p.old_bars-p.new_bars);
+        }
+
+        
+        if(p.new_weight-p.old_weight > 0){
+            product.QantityInUnit2 += (p.new_weight-p.old_weight);
+        }
+        else{
+            product.QantityOutUnit2 += (p.old_weight-p.new_weight);
+        }
     });
 
     deliveryRecordedForCountingQuantity.forEach(d =>{
@@ -214,8 +164,14 @@ const caculateQuantityInOut = (product, startDate, endDate, deliveryData, supple
 }
 
 const Overall = async (req, res) => {
-    const {startDate, endDate, partnerid, searchKeyword} = req.query;
+    let {startDate, endDate, partnerid, searchKeyword} = req.query;
     console.log("received parameters:", {startDate, endDate, partnerid, searchKeyword});
+
+    const today = new Date().toISOString().split('T')[0];
+    startDate = startDate || today;
+    endDate = endDate || today;
+
+   
 
     const {data:inventoryData , error:inventoryError} = await supabase
     .from("product")
@@ -225,7 +181,7 @@ const Overall = async (req, res) => {
         console.error("Error fetching product data:", inventoryError);
         return res.status(500).json({ error: "Failed to fetch product data" });
     }
-
+    //get record from delivery history
     const deliveryQuery = supabase
     .from("delivery_for_io_report")
     .select("*");
@@ -240,6 +196,7 @@ const Overall = async (req, res) => {
 
     const {data:deliveryData, error:deliveryError} = await deliveryQuery;
 
+    //get record from supplement order list
     const supplementQuery = supabase
     .from("supplement_list_for_io_report")
     .select("*");
@@ -249,13 +206,55 @@ const Overall = async (req, res) => {
         supplementQuery.gte('getdate',startDate);
     }
 
+
     // if(endDate){
     //     supplementQuery.lte('getdate', endDate);  
     // }
 
     const {data:supplementData, error:supplementError} = await supplementQuery;
 
+    //get record from product change history
+
+
     const product_change_data = await getProductChange(startDate, endDate, req, res);
+   
+
+    const historyStartDate = startDate;
+    const historyEndDate = endDate;
+
+    
+        const prevDate = new Date(historyStartDate);
+        prevDate.setDate(prevDate.getDate() - 1);
+        const actualHistoryStartDate = prevDate.toISOString().split('T')[0];
+    
+
+    //Get start and end date data from product_history
+    const {data:startDateData, error:startDateError} = await supabase
+    .from("product_history")
+    .select("*")
+    .gte('recorded_at' ,actualHistoryStartDate + ' 00:00:00')
+    .lte('recorded_at', actualHistoryStartDate + ' 23:59:59');
+
+    console.log("Start date:", actualHistoryStartDate);
+    console.log("End date:", actualHistoryStartDate);
+
+
+    if(startDateError) {
+        console.error("Error fetching start date data:", startDateError);
+    }
+
+     const {data:endDateData, error:endDateError} = await supabase
+        .from("product_history")
+        .select("*")
+        .gte('recorded_at', historyEndDate + ' 00:00:00')
+        .lte('recorded_at', historyEndDate + ' 23:59:59');
+
+        if(endDateError) {
+            console.error("Error fetching end date data:", endDateError);
+        }
+//==================================================================================================        
+
+
 
     const joinSimilarProducts = (productList) =>{
         const grouped = productList.reduce((acc,item) => {
@@ -282,22 +281,22 @@ const Overall = async (req, res) => {
                     QantityInUnit1: item.QantityInUnit1,
                     QantityOutUnit1: item.QantityOutUnit1,
                     EdStockUnit1: item.EdStockUnit1,
-                    OpStockUnit2: item.OpStockUnit2.toFixed(1),
-                    QantityInUnit2: item.QantityInUnit2.toFixed(1),
-                    QantityOutUnit2: item.QantityOutUnit2.toFixed(1),
-                    EdStockUnit2: item.EdStockUnit2.toFixed(1)
+                    OpStockUnit2: item.OpStockUnit2 == null? item.OpStockUnit2.toFixed(1) : 0,
+                    QantityInUnit2: item.QantityInUnit2 == null? item.QantityInUnit2.toFixed(1) : 0,
+                    QantityOutUnit2: item.QantityOutUnit2 == null? item.QantityOutUnit2.toFixed(1) : 0,
+                    EdStockUnit2: item.EdStockUnit2 == null? item.EdStockUnit2.toFixed(1) : 0
                 })
             }
             return acc;
         },[])
-
+        console.log("Grouped");
         return grouped; 
     }
     let rawReport = [];
     inventoryData.forEach(product => {
         let item = JSON.parse(JSON.stringify(IOReportItemForm));
         const quantityInOut = caculateQuantityInOut(product, startDate, endDate, deliveryData, supplementData, product_change_data);
-        const caculatedStock = caculateOpStock(product, startDate, endDate, deliveryData, supplementData, product_change_data);
+        const caculatedStock = caculateOpStock(product, inventoryData, startDate, endDate,startDateData, endDateData);
         item.id = rawReport.length <= 0 ? 1 : rawReport[rawReport.length - 1].id + 1;
         item.partnerid = product.partnerid;
         item.name = product.name;

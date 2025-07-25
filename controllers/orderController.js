@@ -26,7 +26,8 @@ const getAllImportOrders = async(req, res) => {
   const { data, error } = await supabase
   .from('order')
   .select(`*,partner(*),orderdetail:orderdetail(*)`)
-  .eq('type', 'I'); // Assuming 'I' is for import orders
+  .eq('type', 'I') // Assuming 'I' is for import orders
+  .is('orderdetail.supplementorderid', null)
   if (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -41,7 +42,8 @@ const getAllExportOrders = async(req, res) => {
   const { data, error } = await supabase
   .from('order')
   .select(`*,partner(*),orderdetail:orderdetail(*)`)
-  .eq('type', 'E'); // Assuming 'E' is for export orders
+  .eq('type', 'E') // Assuming 'E' is for export orders
+  .is('orderdetail.supplementorderid', null)
   if (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -337,7 +339,7 @@ const getOrderDetail = async (req,res) => {
   .from('order')
   .select(`*, partner(*), orderdetail(*,product:product(*,catalog(*)))`)
   .eq('id',id)
-
+  .is('orderdetail.supplementorderid', null)
   if( error ){
     return res.json({error: error.message});
   }
