@@ -63,21 +63,6 @@ const caculateOpStock = (product,inventoryData,startDate,endDate,startDateData,e
         product.EdStockUnit1 = dataOnEndDate?.totalbar || 0;
         product.EdStockUnit2 = dataOnEndDate?.totalweight || 0;
     }
-
-
-
-
-
-
-
-
-
-       
-
-    
-
-  
-    
         return {
             OpStockUnit1: product.OpStockUnit1,
             OpStockUnit2: product.OpStockUnit2,
@@ -281,10 +266,15 @@ const Overall = async (req, res) => {
                     QantityInUnit1: item.QantityInUnit1,
                     QantityOutUnit1: item.QantityOutUnit1,
                     EdStockUnit1: item.EdStockUnit1,
-                    OpStockUnit2: item.OpStockUnit2 == null? item.OpStockUnit2.toFixed(1) : 0,
-                    QantityInUnit2: item.QantityInUnit2 == null? item.QantityInUnit2.toFixed(1) : 0,
-                    QantityOutUnit2: item.QantityOutUnit2 == null? item.QantityOutUnit2.toFixed(1) : 0,
-                    EdStockUnit2: item.EdStockUnit2 == null? item.EdStockUnit2.toFixed(1) : 0
+                    // OpStockUnit2: item.OpStockUnit2 == null? item.OpStockUnit2.toFixed(1) : 0,
+                    // QantityInUnit2: item.QantityInUnit2 == null? item.QantityInUnit2.toFixed(1) : 0,
+                    // QantityOutUnit2: item.QantityOutUnit2 == null? item.QantityOutUnit2.toFixed(1) : 0,
+                    // EdStockUnit2: item.EdStockUnit2 == null? item.EdStockUnit2.toFixed(1) : 0
+                    OpStockUnit2: item.OpStockUnit2 ,
+                    QantityInUnit2: item.QantityInUnit2 ,
+                    QantityOutUnit2: item.QantityOutUnit2,
+                    EdStockUnit2: item.EdStockUnit2 
+
                 })
             }
             return acc;
