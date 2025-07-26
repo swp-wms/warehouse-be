@@ -64,7 +64,7 @@ const createDeliveryForOrder = async (req, res) => {
             return res.status(401).json({ message: 'Bạn không phải người tạo đơn hàng. Bạn không có quyền thêm vận chuyển!' });
         }
 
-        const { deliverydate, getdate, note, listDeliveryDetail } = req.body.delivery;
+        const { deliverydate, getdate, note, listDeliveryDetail } = req.body.newDelivery;;
         // console.log(req.body.delivery.listDeliveryDetail);
 
 
