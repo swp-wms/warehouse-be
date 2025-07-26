@@ -534,9 +534,9 @@ const getDeliveryListForExportOrderList = async (req, res) => {
 
     let orders;
     if (roleid !== role.SALESMAN) {
-        orders = (await supabase.from('percentperorder').select().eq('type', 'E').neq('status', 'XONG')).data;
+        orders = (await supabase.from('percentperorder').select().eq('type', 'E')).data;
     } else {
-        orders = (await supabase.from('percentperorder').select().eq('type', 'E').eq('salesmanid', userid).neq('status', 'XONG')).data;
+        orders = (await supabase.from('percentperorder').select().eq('type', 'E').eq('salesmanid', userid)).data;
     }
 
     return res.send(orders);
@@ -548,9 +548,9 @@ const getDeliveryListForImportOrderList = async (req, res) => {
     let orders;
 
     if (roleid !== role.SALESMAN) {
-        orders = (await supabase.from('percentperorder').select().eq('type', 'I').neq('status', 'XONG')).data;
+        orders = (await supabase.from('percentperorder').select().eq('type', 'I')).data;
     } else {
-        orders = (await supabase.from('percentperorder').select().eq('type', 'I').eq('salesmanid', userid).neq('status', 'XONG')).data;
+        orders = (await supabase.from('percentperorder').select().eq('type', 'I').eq('salesmanid', userid)).data;
     }
 
     return res.send(orders);

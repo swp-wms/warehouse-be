@@ -14,7 +14,7 @@ const totalFutureWeightofWH = async (req, res) => {
     const { createdate } = req.params;
     const weight = (await supabase.rpc("get_weight_by_date", { delivery_date: createdate })).data[0];
     const totalweight = (await supabase.from("totalweightwh").select("")).data;
-    const totalFuture = totalweight[0].sum - weight.total_weight_by_date;
+    const totalFuture = totalweight[0].sum + weight.total_weight_by_date;
     const percent_future = totalFuture/15000000*100; 
     res.send({ 
       totalFuture,
