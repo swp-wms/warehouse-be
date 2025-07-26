@@ -64,8 +64,8 @@ const createDeliveryForOrder = async (req, res) => {
             return res.status(401).json({ message: 'Bạn không phải người tạo đơn hàng. Bạn không có quyền thêm vận chuyển!' });
         }
 
-        const { deliverydate, getdate, note, listDeliveryDetail } = req.body.newDelivery;
-        // console.log(req.body.newDelivery.listDeliveryDetail);
+        const { deliverydate, getdate, note, listDeliveryDetail } = req.body.delivery;
+        // console.log(req.body.delivery.listDeliveryDetail);
 
 
         // if (deliverytime !== null || gettime !== null) {
@@ -258,7 +258,16 @@ const confirmIsDeliverying = async (req, res) => {
             return res.sendStatus(404);
         }
 
-        if (new Date() < new Date(delivery.getdate)) {
+        const currentDate = new Date();
+        const deliveryDate = new Date(delivery.deliverydate);
+        const getDate = new Date(delivery.getdate);
+
+        currentDate.setHours(0, 0, 0, 0);
+
+        deliveryDate.setHours(0, 0, 0, 0);
+        getDate.setHours(0, 0, 0, 0);
+
+        if (currentDate < getDate) {
             return res.status(400).json({ message: 'Chưa đến ngày bốc hàng. Bạn không thể chuyển trạng thái bây giờ.' });
         }
 
@@ -302,7 +311,7 @@ const confirmCompleteDeliverying = async (req, res) => {
 
         if (new Date() < new Date(delivery.deliverydate)) {
             console.log('hia');
-            
+
             return res.status(400).json({ message: 'Chưa đến ngày giao hàng. Bạn không thể chuyển trạng thái bây giờ.' });
         }
 
@@ -362,11 +371,23 @@ const updateRealQuantityAndWeight = async (req, res) => {
         let { realData, act } = req.body;
         console.log(req.body);
 
+        const currentDate = new Date();
+        const deliveryDate = new Date(delivery.deliverydate);
+        const getDate = new Date(delivery.getdate);
+
+        // Normalize current date to the beginning of the day (00:00:00)
+        currentDate.setHours(0, 0, 0, 0);
+
+        // Normalize delivery date to the beginning of the day (00:00:00)
+        deliveryDate.setHours(0, 0, 0, 0);
+        getDate.setHours(0, 0, 0, 0);
+
+
         if (act === 'nhap' && delivery.deliverystatus !== deliveryStatus.DANG_VAN_CHUYEN) {
             return res.status(400).json({ message: 'Bạn chưa được update thông tin của đơn vận chuyển này!' });
         }
 
-        if (act === 'nhap' && new Date() < new Date(delivery.deliverydate)) {
+        if (act === 'nhap' && currentDate < deliveryDate) {
             return res.status(400).json({ message: 'Chưa đến ngày giao hàng. Bạn chưa được update thông tin của đơn vận chuyển bây giờ.' });
         }
 
@@ -374,7 +395,7 @@ const updateRealQuantityAndWeight = async (req, res) => {
             return res.status(400).json({ message: 'Bạn chưa được update thông tin của đơn vận chuyển này!' });
         }
 
-        if (act === 'xuat' && new Date() < new Date(delivery.getdate)) {
+        if (act === 'xuat' && currentDate < getDate) {
             return res.status(400).json({ message: 'Chưa đến ngày bốc hàng. Bạn chưa được update thông tin của đơn vận chuyển bây giờ.' });
         }
 
