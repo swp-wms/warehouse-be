@@ -63,21 +63,6 @@ const caculateOpStock = (product,inventoryData,startDate,endDate,startDateData,e
         product.EdStockUnit1 = dataOnEndDate?.totalbar || 0;
         product.EdStockUnit2 = dataOnEndDate?.totalweight || 0;
     }
-
-
-
-
-
-
-
-
-
-       
-
-    
-
-  
-    
         return {
             OpStockUnit1: product.OpStockUnit1,
             OpStockUnit2: product.OpStockUnit2,
