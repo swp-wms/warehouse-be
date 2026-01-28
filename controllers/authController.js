@@ -1,121 +1,230 @@
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-const { ROLE } = require("../constraints/role");
-const { getRoleNameByKey } = require("../cache/roleCache");
+const supabase = require('../config/supabaseClient');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
-const handleSignup = async (req, res) => {
-  if (!req.body?.email || !req.body?.password) {
-    return res.status(401).json({
-      message: "Email and password are required!",
-    });
-  }
+const login = async (req, res) => {
+    const { username, password } = req.body;
 
-  const { email, password } = req.body;
-
-  const duplicate = await User.findOne({ email }).exec();
-  if (duplicate) {
-    return res.status(409).json({ message: "Email has existed!" });
-  }
-
-  try {
-    const hashPass = await bcrypt.hash(password, 10);
-
-    await User.create({
-      email,
-      password: hashPass,
-      roleKey: req.body?.roleKey,
-    });
-
-    return res.status(201).json({
-      message: `Welcome ${email} as ${req.body?.roleKey ? getRoleNameByKey(req.body.roleKey) : getRoleNameByKey(ROLE.CUSTOMER)}`,
-    });
-  } catch (error) {
-    console.error(error);
-    res.sendStatus(500);
-  }
-};
-
-const handleLogin = async (req, res) => {
-  if (!req.body?.email || !req.body?.password) {
-    return res.status(401).json({
-      message: "Email and password are required!",
-    });
-  }
-  const { email, password } = req.body;
-
-  const matchUser = await User.findOne({ email }).exec();
-
-  if (!matchUser) {
-    return res.status(401).json({
-      message: "Email does not exist!",
-    });
-  }
-
-  try {
-    const compare = await bcrypt.compare(password, matchUser.password);
-    if (!compare) {
-      return res.status(401).json({ message: "Password is incorrect!" });
+    if (!username || !password) {
+        return res.status(400).json({
+            message: 'Tên đăng nhập và mật khẩu là bắt buộc!'
+        });
     }
 
-    const refreshToken = jwt.sign(
-      {
-        email: matchUser.email,
-      },
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: "1d" },
-    );
+    try {
+        const result = await supabase.from('user').select().filter('username', 'eq', username);
+        if (result.error) {
+            console.log(result.error);
+            throw new Error(result.error);
+        }
 
-    const accessToken = jwt.sign(
-      {
-        email: matchUser.email,
-        roleKey: matchUser.roleKey,
-      },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "1h" },
-    );
+        const match = result.data[0];
+        if (!match) {
+            return res.status(401).json({
+                message: "Người dùng không tồn tại!"
+            });
+        }
 
-    res.cookie("jwt", refreshToken, {
-      httpOnly: true,
-      sameSite: "None",
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+        if(match.status == 0) {
+             return res.status(401).json({
+                message: "Người dùng đã deactive không được phép đăng nhập!"
+            });
+        }
 
-    res.status(200).json({
-      accessToken,
-    });
-  } catch (error) {
-    console.error(error);
+        const checkPass = await bcrypt.compare(password, match.password);
+        if (!checkPass) {
+            return res.status(401).json({
+                message: 'Mật khẩu không chính xác!'
+            });
+        }
 
-    res.sendStatus(500);
-  }
-};
+        const refreshToken = jwt.sign(
+            {
+                id: match.id,
+                username: match.username,
+                roleid: match.roleid
+            },
+            process.env.REFRESH_TOKEN_SECRET,
+            {
+                expiresIn: '1d'
+            }
+        );
 
-const handleLogout = async (req, res) => {
-  const cookies = req.headers?.cookie;
+        const accessToken = jwt.sign(
+            {
+                id: match.id,
+                username: match.username,
+                roleid: match.roleid
+            },
+            process.env.ACCESS_TOKEN_SECRET,
+            {
+                expiresIn: '2h'
+            }
+        );
 
-  let refreshToken;
-  cookies.split(";").forEach((cookie) => {
-    const token = cookie.split("=")[0] === "jwt" ? cookie.split("=")[1] : "";
-    if (token.length > 0) {
-      refreshToken = token;
+        res.cookie('jwt', refreshToken, { maxAge: 24 * 60 * 1000, httpOnly: true, sameSite: 'None' });
+
+        res.status(200).json({
+            message: 'Đăng nhập thành công!',
+            accessToken,
+            roleid: match.roleid
+        });
+    } catch (error) {
+        console.log(error);
+
+        res.sendStatus(500);
     }
-  });
+}
 
-  if (!refreshToken) {
-    return res.sendStatus(204);
-  }
+const resetPassword = async (req, res) => {
+    const { email, password } = req.body;
 
-  const email = req.params;
-  const matchUser = await User.findOne({ email }).exec();
+    if (!email) {
+        return res.status(400).json({
+            message: 'Có lỗi xảy ra. Vui lòng thử lại!'
+        });
+    }
 
-  if (!matchUser) {
-    res.clearCookie("jwt", { httpOnly: true, sameSite: "None" });
-    return res.sendStatus(204);
-  }
+    if (!password) {
+        return res.status(400).json({
+            message: 'Mật khẩu là bắt buộc!'
+        });
+    }
 
-  res.clearCookie("jwt", { httpOnly: true, sameSite: "None" });
-  res.sendStatus(204);
-};
+    try {
+        const result = await supabase.from('user').select().filter('username', 'eq', email);
+        if (result.error) {
+            console.log(result.error);
+            throw new Error(result.error);
+        }
 
-module.exports = { handleLogin, handleLogout, handleSignup };
+        const match = result.data[0];
+        if (!match) {
+            return res.status(401).json({
+                message: "Người dùng không tồn tại!"
+            });
+        }
+
+        const otp = (await supabase.from('otp').select().filter('email', 'eq', email).single()).data;
+        console.log(otp);
+        
+        if (!otp || !otp.verified || new Date() > otp.expire) {
+            return res.status(401).json({
+                message: "Bạn chưa xác nhận OTP hoặc OTP đã hết hạn! Vui lòng thử lại!"
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const resultUpdate = await supabase.from('user').update({ password: hashedPassword }).eq('username', email);
+        if (resultUpdate.error) {
+            console.log(resultUpdate.error);
+            throw new Error(resultUpdate.error);
+        }
+        await supabase.from('otp').delete().eq('email', email);
+
+        res.sendStatus(200);
+    } catch (error) {
+        console.log(error);
+
+        res.sendStatus(500);
+    }
+}
+
+const resetPasswordByAdmin = async (req, res) => {
+    const { username, password } = req.body;
+
+    if (!password || !username) {
+        return res.status(400).json({
+            message: 'Tên đăng nhập và mật khẩu là bắt buộc!'
+        });
+    }
+
+    try {
+        const result = await supabase.from('user').select().filter('username', 'eq', username);
+        if (result.error) {
+            console.log(result.error);
+            throw new Error(result.error);
+        }
+
+        const match = result.data[0];
+        if (!match) {
+            return res.status(401).json({
+                message: "Người dùng không tồn tại!"
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const resultUpdate = await supabase.from('user').update({ password: hashedPassword }).eq('username', username);
+        if (resultUpdate.error) {
+            console.log(resultUpdate.error);
+            throw new Error(resultUpdate.error);
+        }
+
+        res.status(200).json({ message: `${username} đổi mật khẩu thành công!` });
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
+}
+
+const changePassword = async (req, res) => {
+    const username = req.username;
+    const { oldPassword, newPassword } = req.body;
+
+    if (!username) {
+        return res.status(400).json({
+            message: 'Có vẻ bạn chưa đăng nhập! Vui lòng đăng nhập lại và thử lại!'
+        });
+    }
+
+    if (!oldPassword || !newPassword) {
+        return res.status(400).json({
+            message: 'Mật khẩu cũ và mật khẩu mới là bắt buộc!'
+        });
+    }
+
+    try {
+        const result = await supabase.from('user').select().filter('username', 'eq', username);
+        if (result.error) {
+            console.log(result.error);
+            throw new Error(result.error);
+        }
+
+        const match = result.data[0];
+        if (!match) {
+            return res.status(401).json({
+                message: "Người dùng không tồn tại!"
+            });
+        }
+
+        const checkPass = await bcrypt.compare(oldPassword, match.password);
+
+        if(!checkPass) {
+            return res.status(401).json({message: 'Mật khẩu cũ không chính xác!'});
+        }
+
+        if (oldPassword === newPassword) {
+            return res.status(400).json({ message: "Mật khẩu mới và cũ không có sự khác biệt!" })
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const resultUpdate = await supabase.from('user').update({ password: hashedPassword }).eq('username', username);
+        if (resultUpdate.error) {
+            console.log(resultUpdate.error);
+            throw new Error(resultUpdate.error);
+        }
+
+        res.status(200).json({ message: `${username} thay đổi mật khẩu thành công!` });
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
+}
+
+const logout = async (req, res) => {
+    res.clearCookie('jwt', { httpOnly: true, sameSite: 'None' });
+    res.sendStatus(204);
+
+}
+
+module.exports = { login, logout, resetPassword, resetPasswordByAdmin, changePassword };

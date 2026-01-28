@@ -1,7 +1,7 @@
 {
-  "name": "cinema-be",
+  "name": "warehouse-be",
   "version": "1.0.0",
-  "description": "This is backend for Cinema Management System project",
+  "description": "This is backend for Warehouse Management System project",
   "main": "index.js",
   "scripts": {
     "start": "node --watch index.js"
@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.8",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -17,8 +18,6 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^7.0.3",
-    "socket.io": "^4.8.1",
-    "mongodb": "^6.13.0",
-    "mongoose": "^8.9.7"
+    "socket.io": "^4.8.1"
   }
 }
